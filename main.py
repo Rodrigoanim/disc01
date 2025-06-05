@@ -1,4 +1,4 @@
-# Data: 05/06/2025 - Hora: 11:00
+# Data: 05/06/2025 - Hora: 16:00
 # IDE Cursor - claude 3.5 sonnet
 # comando: streamlit run main.py
 # DISC -Passo 1 
@@ -170,6 +170,20 @@ def authenticate_user():
                 [data-testid="stAppViewContainer"],
                 [data-testid="stAppViewContainer"] * {
                     color: #000000 !important;
+                }
+
+                /* Estilo para campos de input */
+                .stTextInput input {
+                    background-color: #f5f5f5 !important;  /* Cinza bem claro */
+                    color: #000000 !important;
+                    border: 1px solid #cccccc !important;
+                }
+
+                /* Estilo para campo de senha */
+                .stTextInput[type="password"] input {
+                    background-color: #f5f5f5 !important;
+                    color: #000000 !important;
+                    border: 1px solid #cccccc !important;
                 }
                 
                 /* Ajuste específico para diferentes elementos */
