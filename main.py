@@ -1,10 +1,11 @@
-# Data: 05/06/2025 - Hora: 16:00
+# Data: 13/05/2025 - Hora: 08:00
 # IDE Cursor - claude 3.5 sonnet
 # comando: streamlit run main.py
-# DISC -Passo 1 
+# logotipos no sidebar e rodapé - Leticia ABIC
 
 import streamlit as st
 import sqlite3
+from paginas.form_model import process_forms_tab
 from datetime import datetime, timedelta
 import time
 import sys
@@ -12,25 +13,25 @@ from config import DB_PATH, DATA_DIR  # Atualize a importação
 import os
 from paginas.monitor import registrar_acesso  # Adicione esta importação no topo do arquivo
 import streamlit.components.v1 as components
-from paginas.form_model import process_forms_tab  # Importação da função process_forms_tab
 
 # Adicione esta linha logo no início do arquivo, após os imports
 # os.environ['RENDER'] = 'true'
 
 # Configuração da página - deve ser a primeira chamada do Streamlit
 st.set_page_config(
-    page_title="Pesquisa Comportamental DISC",  # Título simplificado
-    page_icon="🧠",
-    layout="centered",
+    page_title="Simulador da Pegada de Carbono do Café",  # Título simplificado
+    page_icon="☕",
+    layout="wide",
     menu_items={
         'About': """
-        ### Sobre o Sistema - Pesquisa Comportamental DISC
+        ### Sobre o Sistema - Simulador da Pegada de Carbono do Café Torrado/Moído
         
-        Versão: 1.0 - 02/06/2025
+        Versão: 3.0 - 13/05/2025
         
-        Esta avaliação tem como objetivo identificar o seu estilo comportamental predominante conforme a metodologia DISC (Dominância, Influência, Estabilidade e Conformidade).
-
-        © 2025 Todos os direitos reservados. AnimGrafs e EAR Consultoria
+        Este sistema foi desenvolvido para simular a pegada de carbono 
+        do processo de produção do café torrado/moído.
+        
+        © 2025 Todos os direitos reservados. ABIC - Associação Brasileira de Indústrias de Café.
         """,
         'Get Help': None,
         'Report a bug': None
@@ -43,7 +44,7 @@ import os
 
 # Obtém o caminho absoluto do diretório atual
 current_dir = os.path.dirname(os.path.abspath(__file__))
-logo_path = os.path.join(current_dir, "Logo_2.jpg")
+logo_path = os.path.join(current_dir, "Logo_ABIC_8eb0ae.jpg")
 
 # --- CSS Global ---
 # Adiciona CSS para ocultar o botão de fullscreen das imagens globalmente
@@ -63,13 +64,12 @@ st.sidebar.markdown("""
         /* Estilo geral do sidebar */
         [data-testid="stSidebar"] {
             padding-top: 0rem;
-            background-color: #f1f1f1; # cor anterior #8eb0ae
-            color: #000000 !important;
+            background-color: #8eb0ae; # cor anterior #007a7d
         }
         
         /* Estilo para títulos no sidebar */
         [data-testid="stSidebar"] h1 {
-            color: #000000; # cor da fonte preta
+            color: #FFFFFF; # cor da fonte branca
             font-size: 24px;
             # font-weight: bold;
             padding: 10px;
@@ -77,21 +77,21 @@ st.sidebar.markdown("""
         
         /* Estilo para texto normal no sidebar */
         [data-testid="stSidebar"] p {
-            color: #000000; 
+            color: #FFFFFF; 
             font-size: 16px;
             padding: 5px;
         }
         
         /* Estilo para links no sidebar */
         [data-testid="stSidebar"] a {
-            color: #0082e2;
+            color: #53a7a9;
             text-decoration: none;
         }
         
         /* Estilo para botões no sidebar */
         [data-testid="stSidebar"] button {
-            background-color: #0082e2; # cor anterior #53a7a9
-            color: #000000;
+            background-color: #53a7a9; # cor anterior #007a7d
+            color: white;
             border-radius: 5px;
             padding: 8px 15px;
         }
@@ -105,7 +105,6 @@ st.sidebar.markdown("""
             border-radius: 5px;
             padding: 10px;
             margin: 5px;
-            color: #000000;
         }
         
         /* Estilo para o container da imagem */
@@ -119,20 +118,6 @@ st.sidebar.markdown("""
         /* Remove o ícone de fullscreen usando o seletor aria-label (regra específica do sidebar mantida por segurança, embora a global deva cobrir) */
         [data-testid="stSidebar"] button[aria-label="Fullscreen"] {
             display: none !important;
-        }
-
-        /* Estilo para elementos de seleção no sidebar */
-        [data-testid="stSidebar"] .stSelectbox label {
-            color: #000000 !important;
-        }
-
-        [data-testid="stSidebar"] .stRadio label {
-            color: #000000 !important;
-        }
-
-        /* Estilo para todos os elementos de texto no sidebar */
-        [data-testid="stSidebar"] * {
-            color: #000000;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -149,6 +134,32 @@ if os.path.exists(logo_path):
 else:
     st.sidebar.warning(f"Logo não encontrado em: {logo_path}")
 
+# Atualizar metadados Open Graph com informações mais específicas
+components.html(
+    """
+    <head>
+        <title>Simulador da Pegada de Carbono do Café Torrado/Moído</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="description" content="Simulador da ABIC para cálculo da pegada de carbono do café torrado/moído">
+        
+        <!-- Open Graph / Facebook -->
+        <meta property="og:type" content="website">
+        <meta property="og:url" content="https://apc.ag93app.com.br/?v=1.0">
+        <meta property="og:title" content="Simulador da Pegada de Carbono do Café Torrado/Moído">
+        <meta property="og:description" content="Ferramenta da ABIC para simulação da pegada de carbono do café torrado/moído">
+        <meta property="og:image" content="https://ag93eventos.com.br/anim/pegada2.jpg?v=1.0">
+        <meta property="og:site_name" content="Simulador Pegada de Carbono">    
+           
+        <!-- Adicional SEO -->
+        <meta name="author" content="ABIC">
+        <meta name="keywords" content="café, pegada de carbono, sustentabilidade, ABIC, café torrado, café moído">
+        <link rel="canonical" href="https://apc.ag93app.com.br/">
+    </head>
+    """,
+    height=0,
+    width=0
+)
 
 def authenticate_user():
     """Autentica o usuário e verifica seu perfil no banco de dados."""
@@ -158,74 +169,22 @@ def authenticate_user():
             <style>
                 /* Estilo para a página de login */
                 [data-testid="stAppViewContainer"] {
-                    background-color: #cbe7f5;
+                    background-color: #007a7d;
                 }
                 
                 /* Remove a faixa branca superior */
                 [data-testid="stHeader"] {
-                    background-color: #cbe7f5;
+                    background-color: #007a7d;
                 }
                 
-                /* Ajuste global da cor do texto */
-                [data-testid="stAppViewContainer"],
-                [data-testid="stAppViewContainer"] * {
-                    color: #000000 !important;
-                }
-
-                /* Estilo para campos de input */
-                .stTextInput input {
-                    background-color: #f5f5f5 !important;  /* Cinza bem claro */
-                    color: #000000 !important;
-                    border: 1px solid #cccccc !important;
-                }
-
-                /* Estilo para campo de senha */
-                .stTextInput[type="password"] input {
-                    background-color: #f5f5f5 !important;
-                    color: #000000 !important;
-                    border: 1px solid #cccccc !important;
-                }
-                
-                /* Ajuste específico para diferentes elementos */
-                [data-testid="stAppViewContainer"] p,
-                [data-testid="stAppViewContainer"] span,
-                [data-testid="stAppViewContainer"] label,
-                [data-testid="stAppViewContainer"] a,
-                [data-testid="stAppViewContainer"] input,
-                [data-testid="stAppViewContainer"] .stMarkdown,
-                [data-testid="stAppViewContainer"] .stText,
-                [data-testid="stAppViewContainer"] .stTextInput label,
-                [data-testid="stAppViewContainer"] .stCheckbox label,
-                [data-testid="stAppViewContainer"] .stButton,
-                [data-testid="stAppViewContainer"] .stSelectbox label,
-                [data-testid="stAppViewContainer"] .stRadio label {
-                    color: #000000 !important;
-                }
-
-                /* Estilo específico para checkbox */
-                [data-testid="stCheckbox"] {
-                    color: #000000 !important;
-                }
-                
-                /* Estilo para links no checkbox */
-                [data-testid="stCheckbox"] a {
-                    color: #000000 !important;
-                    text-decoration: underline;
+                /* Ajuste da cor do texto para melhor contraste */
+                [data-testid="stAppViewContainer"] p {
+                    color: white;
                 }
                 
                 /* Mantém o fundo do sidebar na cor original */
                 [data-testid="stSidebar"] {
-                    background-color: #f1f1f1 !important;
-                }
-
-                /* Estilo para texto do botão */
-                button {
-                    color: #000000 !important;
-                }
-
-                /* Estilo para elementos de markdown */
-                .element-container {
-                    color: #000000 !important;
+                    background-color: #8eb0ae !important;
                 }
             </style>
         """, unsafe_allow_html=True)
@@ -252,15 +211,15 @@ def authenticate_user():
         col1, col2, col3 = st.columns([1, 20, 1])
         
         with col2:
-            # Imagem de capa usando webinar_1.jpg da raiz
-            st.image("webinar_1.jpg", use_container_width=True)
+            # Imagem de capa usando SPCC.jpg da raiz
+            st.image("SPCC.jpg", use_container_width=True)
             
         st.markdown("""
             <p style='text-align: center; font-size: 35px;'>Faça login para acessar o sistema</p>
         """, unsafe_allow_html=True)
         
         # Login na sidebar
-        st.sidebar.markdown("<h1 style='color: white; font-size: 24px;'>DISC - ver. 1.0</h1>", unsafe_allow_html=True)
+        st.sidebar.markdown("<h1 style='color: white; font-size: 24px;'>SPCC - ver. 3.0</h1>", unsafe_allow_html=True)
 
         # Criar labels personalizados com cor branca
         st.sidebar.markdown("<p style='color: white; margin-bottom: 5px;'>E-mail</p>", unsafe_allow_html=True)
@@ -294,9 +253,9 @@ def authenticate_user():
             </style>
         """, unsafe_allow_html=True)
 
-        # link do arquivo Termos_Uso_DISC.pdf
+        # link e path do arquivo termos_de_uso.pdf
         aceite_termos = st.sidebar.checkbox(
-            'Declaro que li e aceito os [termos de uso do assessment](https://ag93eventos.com.br/ear/Termos_Uso_DISC.pdf)',
+            'Declaro que li e aceito os [termos de uso do simulador](https://ag93eventos.com.br/abic/termos_de_uso.pdf)',
             key='aceite_termos'
         )
 
@@ -402,10 +361,14 @@ def show_welcome():
             <div style="background-color: #8eb0ae; padding: 20px; border-radius: 8px;">
                 <p style="color: #ffffff; font-size: 24px; font-weight: bold;">Módulos Disponíveis</p>
                 <div style="color: #ffffff; font-size: 16px;">
-                    <p>Colaborador</p>
-                    <p>Gestor</p>
-                    <p>Diretor</p>
-                    <p>DISC - Resultados</p>
+                    <p>Entrada de Dados - Tipo do Café</p>
+                    <p>Entrada de Dados - Torrefação e Moagem</p>
+                    <p>Entrada de Dados - Embalagem</p>
+                    <p>Simulações da Empresa</p>
+                    <p>Simulações da Empresa Sem Etapa Agrícola</p>
+                    <p>Simulações - Comparação Setorial</p>
+                    <p>Simulações - Comparação Setorial Sem Etapa Agrícola</p>
+                    <p>Simulações - Análise Energética - Torrefação</p>
                 </div>
             </div>
         """
@@ -487,7 +450,7 @@ def main():
     # Titulo da página
     st.markdown("""
         <p style='text-align: left; font-size: 44px; font-weight: bold;'>
-            ASSESSMENTS /PESQUISA COMPORTAMENTAL DISC
+            Simulador da Pegada de Carbono do Café Torrado/Moído
         </p>
     """, unsafe_allow_html=True)
 
@@ -516,9 +479,9 @@ def main():
     
     # Atualizar o mapeamento para incluir o novo nome do CRUD
     section_map = {
-        "Colaborador": "colaborador",
-        "Gestor": "gestor",
-        "Diretor": "diretor",
+        "Tipo do Café": "cafe",
+        "Torrefação e Moagem": "moagem",
+        "Embalagem": "embalagem",
         "da Empresa": "Resultados",
         "Info Tabelas (CRUD)": "crud"
     }
@@ -527,9 +490,9 @@ def main():
     menu_groups = {
         "Principal": ["Bem-vindo"],
         "Entrada de Dados": [
-            "Colaborador",
-            "Gestor",
-            "Diretor"
+            "Tipo do Café",
+            "Torrefação e Moagem",
+            "Embalagem"
         ],
         "Simulações": [
             "da Empresa",
@@ -577,7 +540,7 @@ def main():
     # Processa a seção selecionada
     if section == "Bem-vindo":
         show_welcome()
-    elif section in ["Colaborador", "Gestor", "Diretor"]:
+    elif section in ["Tipo do Café", "Torrefação e Moagem", "Embalagem"]:
         process_forms_tab(section_map[section])
     elif section in [
         "da Empresa",
@@ -613,7 +576,7 @@ def main():
     st.sidebar.markdown("<br>" * 1, unsafe_allow_html=True)
     
     # Logo do rodapé
-    footer_logo_path = os.path.join(current_dir, "Logo_1.jpg")
+    footer_logo_path = os.path.join(current_dir, "Logo_Pegada_8eb0ae.jpg")
     if os.path.exists(footer_logo_path):
         col1, col2, col3 = st.sidebar.columns([1,2,1])
         with col2:
@@ -712,7 +675,7 @@ def save_current_form_data():
             
             previous_page = st.session_state.get("previous_page", "")
             
-            if "Colaborador" in previous_page:
+            if "Tipo do Café" in previous_page:
                 tipo_cafe = st.session_state.get("form_data", {}).get("tipo_cafe")
                 quantidade = st.session_state.get("form_data", {}).get("quantidade")
                 
@@ -727,7 +690,7 @@ def save_current_form_data():
                         quantidade
                     ))
             
-            elif "Gestor" in previous_page:
+            elif "Torrefação e Moagem" in previous_page:
                 cursor.execute("""
                     INSERT OR REPLACE INTO form_moagem 
                     (user_id, data_input, tipo_moagem, temperatura)
@@ -738,7 +701,7 @@ def save_current_form_data():
                     st.session_state.get("form_data", {}).get("temperatura")
                 ))
             
-            elif "Diretor" in previous_page:
+            elif "Embalagem" in previous_page:
                 cursor.execute("""
                     INSERT OR REPLACE INTO form_embalagem 
                     (user_id, data_input, tipo_embalagem, peso)

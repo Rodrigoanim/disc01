@@ -1,9 +1,10 @@
 # Arquivo: create_forms.py
-# Data: 05/06/2025 - 11:00
+# Data: 22/02/2025 - 15:12
 # Descrição: Script para atualizar atraves de um arquivo .txt
-# Tabelas: forms_tab, usuarios
+# Tabelas: forms_tab, forms_insumos, forms_resultados, forms_result_sea, forms_setorial, forms_setorial_sea, forms_energetica
 # Adaptação para o uso de Discos SSD e a pasta Data para o banco de dados
 # Programa roda direto no Python - não usar o streamlit
+# Nova coluna - col_len
 
 
 import sqlite3
