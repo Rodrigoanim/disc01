@@ -1,4 +1,4 @@
-# Data: 02/06/2025 - Hora: 10:00
+# Data: 05/06/2025 - Hora: 11:00
 # IDE Cursor - claude 3.5 sonnet
 # comando: streamlit run main.py
 # DISC -Passo 1 
@@ -12,6 +12,7 @@ from config import DB_PATH, DATA_DIR  # Atualize a importação
 import os
 from paginas.monitor import registrar_acesso  # Adicione esta importação no topo do arquivo
 import streamlit.components.v1 as components
+from paginas.form_model import process_forms_tab  # Importação da função process_forms_tab
 
 # Adicione esta linha logo no início do arquivo, após os imports
 # os.environ['RENDER'] = 'true'
@@ -20,7 +21,7 @@ import streamlit.components.v1 as components
 st.set_page_config(
     page_title="Pesquisa Comportamental DISC",  # Título simplificado
     page_icon="🧠",
-    layout="wide",
+    layout="centered",
     menu_items={
         'About': """
         ### Sobre o Sistema - Pesquisa Comportamental DISC
@@ -279,9 +280,9 @@ def authenticate_user():
             </style>
         """, unsafe_allow_html=True)
 
-        # link e path do arquivo termos_de_uso.pdf
+        # link do arquivo Termos_Uso_DISC.pdf
         aceite_termos = st.sidebar.checkbox(
-            'Declaro que li e aceito os [termos de uso do assessment](https://ag93eventos.com.br/abic/termos_de_uso.pdf)',
+            'Declaro que li e aceito os [termos de uso do assessment](https://ag93eventos.com.br/ear/Termos_Uso_DISC.pdf)',
             key='aceite_termos'
         )
 
@@ -387,14 +388,10 @@ def show_welcome():
             <div style="background-color: #8eb0ae; padding: 20px; border-radius: 8px;">
                 <p style="color: #ffffff; font-size: 24px; font-weight: bold;">Módulos Disponíveis</p>
                 <div style="color: #ffffff; font-size: 16px;">
-                    <p>Entrada de Dados - Tipo do Café</p>
-                    <p>Entrada de Dados - Torrefação e Moagem</p>
-                    <p>Entrada de Dados - Embalagem</p>
-                    <p>Simulações da Empresa</p>
-                    <p>Simulações da Empresa Sem Etapa Agrícola</p>
-                    <p>Simulações - Comparação Setorial</p>
-                    <p>Simulações - Comparação Setorial Sem Etapa Agrícola</p>
-                    <p>Simulações - Análise Energética - Torrefação</p>
+                    <p>Colaborador</p>
+                    <p>Gestor</p>
+                    <p>Diretor</p>
+                    <p>DISC - Resultados</p>
                 </div>
             </div>
         """
@@ -476,7 +473,7 @@ def main():
     # Titulo da página
     st.markdown("""
         <p style='text-align: left; font-size: 44px; font-weight: bold;'>
-            Simulador da Pegada de Carbono do Café Torrado/Moído
+            ASSESSMENTS /PESQUISA COMPORTAMENTAL DISC
         </p>
     """, unsafe_allow_html=True)
 
@@ -505,9 +502,9 @@ def main():
     
     # Atualizar o mapeamento para incluir o novo nome do CRUD
     section_map = {
-        "Tipo do Café": "cafe",
-        "Torrefação e Moagem": "moagem",
-        "Embalagem": "embalagem",
+        "Colaborador": "colaborador",
+        "Gestor": "gestor",
+        "Diretor": "diretor",
         "da Empresa": "Resultados",
         "Info Tabelas (CRUD)": "crud"
     }
@@ -516,9 +513,9 @@ def main():
     menu_groups = {
         "Principal": ["Bem-vindo"],
         "Entrada de Dados": [
-            "Tipo do Café",
-            "Torrefação e Moagem",
-            "Embalagem"
+            "Colaborador",
+            "Gestor",
+            "Diretor"
         ],
         "Simulações": [
             "da Empresa",
@@ -566,7 +563,7 @@ def main():
     # Processa a seção selecionada
     if section == "Bem-vindo":
         show_welcome()
-    elif section in ["Tipo do Café", "Torrefação e Moagem", "Embalagem"]:
+    elif section in ["Colaborador", "Gestor", "Diretor"]:
         process_forms_tab(section_map[section])
     elif section in [
         "da Empresa",
@@ -701,7 +698,7 @@ def save_current_form_data():
             
             previous_page = st.session_state.get("previous_page", "")
             
-            if "Tipo do Café" in previous_page:
+            if "Colaborador" in previous_page:
                 tipo_cafe = st.session_state.get("form_data", {}).get("tipo_cafe")
                 quantidade = st.session_state.get("form_data", {}).get("quantidade")
                 
@@ -716,7 +713,7 @@ def save_current_form_data():
                         quantidade
                     ))
             
-            elif "Torrefação e Moagem" in previous_page:
+            elif "Gestor" in previous_page:
                 cursor.execute("""
                     INSERT OR REPLACE INTO form_moagem 
                     (user_id, data_input, tipo_moagem, temperatura)
@@ -727,7 +724,7 @@ def save_current_form_data():
                     st.session_state.get("form_data", {}).get("temperatura")
                 ))
             
-            elif "Embalagem" in previous_page:
+            elif "Diretor" in previous_page:
                 cursor.execute("""
                     INSERT OR REPLACE INTO form_embalagem 
                     (user_id, data_input, tipo_embalagem, peso)
