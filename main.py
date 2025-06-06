@@ -188,7 +188,7 @@ def authenticate_user():
         
         with col2:
             # Imagem de capa - Tela abertura
-            st.image("webinar.jpg", use_container_width=True)
+            st.image("webinar1.jpg", use_container_width=True)
             
         st.markdown("""
             <p style='text-align: center; font-size: 35px;'>Faça login para acessar o sistema</p>
