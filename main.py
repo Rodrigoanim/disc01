@@ -1,7 +1,7 @@
 # Data: 06/06/2025 - Hora: 10:00
-# IDE Cursor - claude 3.5 sonnet
+# IDE Cursor - gemini 2.5 pro
 # comando: streamlit run main.py
-# Passo 1
+# Adaptação para Mobile
 
 
 import streamlit as st
@@ -22,7 +22,7 @@ import streamlit.components.v1 as components
 st.set_page_config(
     page_title="Assessment DISC",  # Título simplificado
     page_icon="📊",
-    layout="wide",
+    layout="centered",
     menu_items={
         'About': """
         ### Sobre o Sistema - Assessment DISC
@@ -37,7 +37,7 @@ st.set_page_config(
         'Get Help': None,
         'Report a bug': None
     },
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # Adicionar verificação e carregamento do logo
@@ -59,90 +59,16 @@ st.markdown("""
 """, unsafe_allow_html=True)
 # --- Fim CSS Global ---
 
-# Adicionar o logotipo no sidebar usando st.sidebar.image
-st.sidebar.markdown("""
-    <style>
-        /* Estilo geral do sidebar */
-        [data-testid="stSidebar"] {
-            padding-top: 0rem;
-            background-color: #8eb0ae; 
-        }
-        
-        /* Estilo para títulos no sidebar */
-        [data-testid="stSidebar"] h1 {
-            color: #FFFFFF; # cor da fonte branca
-            font-size: 24px;
-            # font-weight: bold;
-            padding: 10px;
-        }
-        
-        /* Estilo para texto normal no sidebar */
-        [data-testid="stSidebar"] p {
-            color: #FFFFFF; 
-            font-size: 16px;
-            padding: 5px;
-        }
-        
-        /* Estilo para links no sidebar */
-        [data-testid="stSidebar"] a {
-            color: #53a7a9;
-            text-decoration: none;
-        }
-        
-        /* Estilo para botões no sidebar */
-        [data-testid="stSidebar"] button {
-            background-color: #53a7a9; # cor anterior #007a7d
-            color: white;
-            border-radius: 5px;
-            padding: 8px 15px;
-        }
-        
-        /* Estilo para o menu de navegação */
-        [data-testid="stSidebarNav"] {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #ffffff;
-            border-radius: 5px;
-            padding: 10px;
-            margin: 5px;
-        }
-        
-        /* Estilo para o container da imagem */
-        .css-1v0mbdj.e115fcil1 {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 1rem;
-        }
-        
-        /* Remove o ícone de fullscreen usando o seletor aria-label (regra específica do sidebar mantida por segurança, embora a global deva cobrir) */
-        [data-testid="stSidebar"] button[aria-label="Fullscreen"] {
-            display: none !important;
-        }
-    </style>
-""", unsafe_allow_html=True)
-
-# Verifica se o arquivo existe antes de tentar carregá-lo
-if os.path.exists(logo_path):
-    col1, col2, col3 = st.sidebar.columns([1,2,1])
-    with col2:
-        st.image(
-            logo_path,
-            width=150,  # ajuste este valor conforme necessário
-            use_container_width=True
-        )
-else:
-    st.sidebar.warning(f"Logo não encontrado em: {logo_path}")
-
-
-
 def authenticate_user():
     """Autentica o usuário e verifica seu perfil no banco de dados."""
     # Adicionar CSS para a página de login
     if not st.session_state.get("logged_in", False):
         st.markdown("""
             <style>
+                /* Oculta a barra lateral na página de login */
+                [data-testid="stSidebar"] {
+                    display: none;
+                }
                 /* Estilo para a página de login */
                 [data-testid="stAppViewContainer"] {
                     background-color: #cbe7f5;
@@ -155,12 +81,7 @@ def authenticate_user():
                 
                 /* Ajuste da cor do texto para melhor contraste */
                 [data-testid="stAppViewContainer"] p {
-                    color: white;
-                }
-                
-                /* Mantém o fundo do sidebar na cor original */
-                [data-testid="stSidebar"] {
-                    background-color: #8eb0ae !important;
+                    color: black;
                 }
             </style>
         """, unsafe_allow_html=True)
@@ -170,9 +91,6 @@ def authenticate_user():
         st.error(f"Banco de dados não encontrado em {DB_PATH}")
         return False, None
         
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-
     if "user_profile" not in st.session_state:
         st.session_state["user_profile"] = None
 
@@ -183,85 +101,54 @@ def authenticate_user():
         st.session_state["user_id"] = None
 
     if not st.session_state["logged_in"]:
-        # Criar uma coluna centralizada
-        col1, col2, col3 = st.columns([1, 20, 1])
-        
-        with col2:
-            # Imagem de capa - Tela abertura
-            st.image("webinar1.jpg", use_container_width=True)
+        # Imagem de capa - Tela abertura
+        st.image("webinar1.jpg", use_container_width=True)
             
         st.markdown("""
             <p style='text-align: center; font-size: 35px;'>Faça login para acessar o sistema</p>
         """, unsafe_allow_html=True)
         
-        # Login na sidebar
-        st.sidebar.markdown("<h1 style='color: white; font-size: 24px;'>DISC - ver. 1.0</h1>", unsafe_allow_html=True)
+        # Formulário de login na área principal
+        with st.form("login_form"):
+            email = st.text_input("E-mail", key="email")
+            password = st.text_input("Senha", type="password", key="password")
 
-        # Criar labels personalizados com cor branca
-        st.sidebar.markdown("<p style='color: white; margin-bottom: 5px;'>E-mail</p>", unsafe_allow_html=True)
-        email = st.sidebar.text_input("Email input", key="email", label_visibility="collapsed")
+            aceite_termos = st.checkbox(
+                'Declaro que li e aceito os [termos de uso da ferramenta](https://ag93eventos.com.br/ear/Termos_Uso_DISC.pdf)',
+                key='aceite_termos'
+            )
 
-        st.sidebar.markdown("<p style='color: white; margin-bottom: 5px;'>Senha</p>", unsafe_allow_html=True)
-        password = st.sidebar.text_input("Password input", type="password", key="password", 
-                                        label_visibility="collapsed",
-                                        on_change=lambda: st.session_state.update({"enter_pressed": True}) 
-                                        if "password" in st.session_state else None)
-
-        # Adiciona o checkbox de aceite dos termos
-        st.sidebar.markdown("""
-            <style>
-                /* Estilo para o link dos termos */
-                a {
-                    color: white !important;
-                    text-decoration: underline !important;
-                }
-                /* Estilo para o checkbox e seu texto */
-                .stCheckbox {
-                    color: white !important;
-                }
-                .stCheckbox label {
-                    color: white !important;
-                }
-                .stCheckbox a {
-                    color: white !important;
-                    text-decoration: underline !important;
-                }
-            </style>
-        """, unsafe_allow_html=True)
-
-        # link e path do arquivo termos_de_uso.pdf
-        aceite_termos = st.sidebar.checkbox(
-            'Declaro que li e aceito os [termos de uso da ferramenta](https://ag93eventos.com.br/ear/Termos_Uso_DISC.pdf)',
-            key='aceite_termos'
-        )
-
-        col1, col2 = st.sidebar.columns(2)
-        with col1:
-            login_button = st.button("Entrar", disabled=not aceite_termos)
+            login_button = st.form_submit_button("Entrar", use_container_width=True)
         
-        if login_button and aceite_termos:
-            cursor.execute("""
-                SELECT id, user_id, perfil, nome FROM usuarios WHERE email = ? AND senha = ?
-            """, (email, password))
-            user = cursor.fetchone()
+            if login_button:
+                if not aceite_termos:
+                    st.warning("Você deve aceitar os termos de uso para continuar.")
+                else:
+                    clean_email = email.strip()
 
-            if user:
-                st.session_state["logged_in"] = True
-                st.session_state["user_profile"] = user[2]
-                st.session_state["user_id"] = user[1]
-                st.session_state["user_name"] = user[3]
-                
-                # Registrar o acesso bem-sucedido
-                registrar_acesso(
-                    user_id=user[1],
-                    programa="main.py",
-                    acao="login"
-                )
-                
-                st.sidebar.success(f"Login bem-sucedido! Bem-vindo, {user[3]}.")
-                st.rerun()
-            else:
-                st.sidebar.error("E-mail ou senha inválidos.")
+                    conn = sqlite3.connect(DB_PATH)
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        SELECT id, user_id, perfil, nome FROM usuarios WHERE LOWER(email) = LOWER(?) AND senha = ?
+                    """, (clean_email, password))
+                    user = cursor.fetchone()
+                    conn.close()
+
+                    if user:
+                        st.session_state["logged_in"] = True
+                        st.session_state["user_profile"] = user[2]
+                        st.session_state["user_id"] = user[1]
+                        st.session_state["user_name"] = user[3]
+                        
+                        # Registrar o acesso bem-sucedido
+                        registrar_acesso(
+                            user_id=user[1],
+                            programa="main.py",
+                            acao="login"
+                        )
+                        st.rerun()
+                    else:
+                        st.error("E-mail ou senha inválidos. Por favor, verifique seus dados e tente novamente.")
 
     return st.session_state.get("logged_in", False), st.session_state.get("user_profile", None)
 
@@ -353,11 +240,11 @@ def zerar_value_element():
         st.session_state.confirma_zeragem = False
     
     # Checkbox para confirmação
-    confirma = st.sidebar.checkbox("Confirmar zeragem dos valores?", 
+    confirma = st.checkbox("Confirmar zeragem dos valores?", 
                                  value=st.session_state.confirma_zeragem,
                                  key='confirma_zeragem')
     
-    if st.sidebar.button("Zerar Valores"):
+    if st.button("Zerar Valores"):
         if confirma:
             try:
                 conn = sqlite3.connect(DB_PATH)
@@ -384,18 +271,18 @@ def zerar_value_element():
                     acao="zerar_valores"
                 )
                 
-                st.sidebar.success(f"Valores zerados com sucesso! ({registros_afetados} registros atualizados)")
+                st.success(f"Valores zerados com sucesso! ({registros_afetados} registros atualizados)")
                 
                 # Força a atualização da página após 1 segundo
                 time.sleep(1)
                 st.rerun()
                 
             except Exception as e:
-                st.sidebar.error(f"Erro ao zerar valores: {str(e)}")
+                st.error(f"Erro ao zerar valores: {str(e)}")
                 if 'conn' in locals():
                     conn.close()
         else:
-            st.sidebar.warning("Confirme a operação para prosseguir")
+            st.warning("Confirme a operação para prosseguir")
 
 def main():
     """Gerencia a navegação entre as páginas do sistema."""
@@ -417,36 +304,40 @@ def main():
     # Armazenar página anterior para comparação
     if "previous_page" not in st.session_state:
         st.session_state["previous_page"] = None
+
+    # --- HEADER ---
+    col1, col2 = st.columns([1, 4])
+    with col1:
+        if os.path.exists(logo_path):
+            st.image(logo_path, width=150)
     
-    # Titulo da página
-    st.markdown("""
-        <p style='text-align: left; font-size: 44px; font-weight: bold;'>
-            Assessment DISC
-        </p>
-    """, unsafe_allow_html=True)
+    with col2:
+        st.markdown("""
+            <p style='text-align: left; font-size: 44px; font-weight: bold;'>
+                Assessment DISC
+            </p>
+        """, unsafe_allow_html=True)
+        with st.expander("Informações do Usuário / Logout", expanded=False):
+            st.markdown(f"""
+                **Usuário:** {st.session_state.get('user_name')}  
+                **ID:** {st.session_state.get('user_id')}  
+                **Perfil:** {st.session_state.get('user_profile')}
+            """)
+            if st.button("Logout"):
+                if "user_id" in st.session_state:
+                    registrar_acesso(
+                        user_id=st.session_state["user_id"],
+                        programa="main.py",
+                        acao="logout"
+                    )
+                for key in ['logged_in', 'user_profile', 'user_id', 'user_name']:
+                    if key in st.session_state:
+                        del st.session_state[key]
+                st.rerun()
 
-    # Adicionar informação do usuário logado
-    st.sidebar.markdown(f"""
-        **Usuário:** {st.session_state.get('user_name')}  
-        **ID:** {st.session_state.get('user_id')}  
-        **Perfil:** {st.session_state.get('user_profile')}
-    """)
-
-    if st.sidebar.button("Logout"):
-        # Registrar o logout antes de limpar a sessão
-        if "user_id" in st.session_state:
-            registrar_acesso(
-                user_id=st.session_state["user_id"],
-                programa="main.py",
-                acao="logout"
-            )
-        
-        for key in ['logged_in', 'user_profile', 'user_id', 'user_name']:
-            if key in st.session_state:
-                del st.session_state[key]
-        st.rerun()
-
-    st.sidebar.title("Menu de Navegação")
+    st.markdown("<hr>", unsafe_allow_html=True)
+    
+    # --- NAVEGAÇÃO ---
     
     # Atualizar o mapeamento para incluir o novo nome do CRUD
     section_map = {
@@ -489,19 +380,22 @@ def main():
     if not menu_groups["Administração"]:
         menu_groups.pop("Administração")
     
-    # Criar seletor de grupo
-    selected_group = st.sidebar.selectbox(
-        "Selecione o módulo:",
-        options=list(menu_groups.keys()),
-        key="group_selection"
-    )
+    # Criar seletores de navegação na página principal
+    nav_cols = st.columns(2)
+    with nav_cols[0]:
+        selected_group = st.selectbox(
+            "Selecione o módulo:",
+            options=list(menu_groups.keys()),
+            key="group_selection"
+        )
     
-    # Criar seletor de página dentro do grupo
-    section = st.sidebar.radio(
-        "Selecione a página:",
-        menu_groups[selected_group],
-        key="menu_selection"
-    )
+    with nav_cols[1]:
+        section = st.radio(
+            "Selecione a página:",
+            menu_groups[selected_group],
+            key="menu_selection",
+            horizontal=True
+        )
 
     # Verificar se houve mudança de página
     if st.session_state.get("previous_page") != section:
@@ -543,18 +437,18 @@ def main():
     elif section == "Zerar Valores":
         zerar_value_element()
 
-    # Após todo o código do menu, adicionar espaço e a imagem do rodapé
-    st.sidebar.markdown("<br>" * 1, unsafe_allow_html=True)
+    # --- FOOTER ---
+    st.markdown("<br>" * 1, unsafe_allow_html=True)
     
     # Logo do rodapé
     footer_logo_path = os.path.join(current_dir, "Logo_1b.jpg")
     if os.path.exists(footer_logo_path):
-        col1, col2, col3 = st.sidebar.columns([1,2,1])
+        col1, col2, col3 = st.columns([1,2,1])
         with col2:
             st.image(
                 footer_logo_path,
                 width=100, 
-                use_container_width=False  # Alterado para False para respeitar o width definido
+                use_container_width=False
             )
 
 def show_page(selected_simulation=None):
@@ -689,46 +583,6 @@ def save_current_form_data():
             st.session_state["form_data"] = {}
             time.sleep(0.5)  # Pequeno delay para feedback visual
         st.success('Dados salvos com sucesso!')
-
-def login():
-    """Função de login do usuário"""
-    # Mova estas variáveis para dentro da função
-    email = st.text_input("E-mail", key="email")
-    senha = st.text_input("Senha", type="password", key="password")
-    
-    if st.form_submit_button("Login"):
-        try:
-            # Use a conexão do DB_PATH em vez de criar_conexao
-            conn = sqlite3.connect(DB_PATH)
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM usuarios WHERE email = ? AND senha = ?", (email, senha))
-            usuario = cursor.fetchone()
-            
-            if usuario:
-                st.session_state.autenticado = True
-                st.session_state.user_id = usuario[0]
-                st.session_state.nome = usuario[1]
-                st.session_state.email = usuario[2]
-                st.session_state.admin = usuario[4]
-                
-                # Registra o acesso bem-sucedido
-                registrar_acesso(
-                    user_id=usuario[0],
-                    programa="main.py",
-                    acao="login"
-                )
-                
-                st.success("Login realizado com sucesso!")
-                st.rerun()
-            else:
-                st.error("Email ou senha incorretos")
-                
-            conn.close()
-            
-        except Exception as e:
-            st.error(f"Erro ao realizar login: {str(e)}")
-            if 'conn' in locals():
-                conn.close()
 
 if __name__ == "__main__":
     main()
