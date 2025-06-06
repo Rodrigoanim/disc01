@@ -1,7 +1,8 @@
-# Data: 13/05/2025 - Hora: 08:00
+# Data: 06/06/2025 - Hora: 10:00
 # IDE Cursor - claude 3.5 sonnet
 # comando: streamlit run main.py
-# logotipos no sidebar e rodapé - Leticia ABIC
+# Passo 1
+
 
 import streamlit as st
 import sqlite3
@@ -19,19 +20,19 @@ import streamlit.components.v1 as components
 
 # Configuração da página - deve ser a primeira chamada do Streamlit
 st.set_page_config(
-    page_title="Simulador da Pegada de Carbono do Café",  # Título simplificado
-    page_icon="☕",
+    page_title="Assessment DISC",  # Título simplificado
+    page_icon="📊",
     layout="wide",
     menu_items={
         'About': """
-        ### Sobre o Sistema - Simulador da Pegada de Carbono do Café Torrado/Moído
+        ### Sobre o Sistema - Assessment DISC
         
-        Versão: 3.0 - 13/05/2025
+        Versão: 3.0 - 06/06/2025
         
-        Este sistema foi desenvolvido para simular a pegada de carbono 
-        do processo de produção do café torrado/moído.
+        Este sistema foi desenvolvido para realizar avaliações comportamentais 
+        utilizando a metodologia DISC.
         
-        © 2025 Todos os direitos reservados. ABIC - Associação Brasileira de Indústrias de Café.
+        © 2025 Todos os direitos reservados.
         """,
         'Get Help': None,
         'Report a bug': None
@@ -44,7 +45,7 @@ import os
 
 # Obtém o caminho absoluto do diretório atual
 current_dir = os.path.dirname(os.path.abspath(__file__))
-logo_path = os.path.join(current_dir, "Logo_ABIC_8eb0ae.jpg")
+logo_path = os.path.join(current_dir, "Logo_2a.jpg")
 
 # --- CSS Global ---
 # Adiciona CSS para ocultar o botão de fullscreen das imagens globalmente
@@ -64,7 +65,7 @@ st.sidebar.markdown("""
         /* Estilo geral do sidebar */
         [data-testid="stSidebar"] {
             padding-top: 0rem;
-            background-color: #8eb0ae; # cor anterior #007a7d
+            background-color: #8eb0ae; 
         }
         
         /* Estilo para títulos no sidebar */
@@ -134,32 +135,7 @@ if os.path.exists(logo_path):
 else:
     st.sidebar.warning(f"Logo não encontrado em: {logo_path}")
 
-# Atualizar metadados Open Graph com informações mais específicas
-components.html(
-    """
-    <head>
-        <title>Simulador da Pegada de Carbono do Café Torrado/Moído</title>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="description" content="Simulador da ABIC para cálculo da pegada de carbono do café torrado/moído">
-        
-        <!-- Open Graph / Facebook -->
-        <meta property="og:type" content="website">
-        <meta property="og:url" content="https://apc.ag93app.com.br/?v=1.0">
-        <meta property="og:title" content="Simulador da Pegada de Carbono do Café Torrado/Moído">
-        <meta property="og:description" content="Ferramenta da ABIC para simulação da pegada de carbono do café torrado/moído">
-        <meta property="og:image" content="https://ag93eventos.com.br/anim/pegada2.jpg?v=1.0">
-        <meta property="og:site_name" content="Simulador Pegada de Carbono">    
-           
-        <!-- Adicional SEO -->
-        <meta name="author" content="ABIC">
-        <meta name="keywords" content="café, pegada de carbono, sustentabilidade, ABIC, café torrado, café moído">
-        <link rel="canonical" href="https://apc.ag93app.com.br/">
-    </head>
-    """,
-    height=0,
-    width=0
-)
+
 
 def authenticate_user():
     """Autentica o usuário e verifica seu perfil no banco de dados."""
@@ -169,12 +145,12 @@ def authenticate_user():
             <style>
                 /* Estilo para a página de login */
                 [data-testid="stAppViewContainer"] {
-                    background-color: #007a7d;
+                    background-color: #cbe7f5;
                 }
                 
                 /* Remove a faixa branca superior */
                 [data-testid="stHeader"] {
-                    background-color: #007a7d;
+                    background-color: #cbe7f5;
                 }
                 
                 /* Ajuste da cor do texto para melhor contraste */
@@ -211,15 +187,15 @@ def authenticate_user():
         col1, col2, col3 = st.columns([1, 20, 1])
         
         with col2:
-            # Imagem de capa usando SPCC.jpg da raiz
-            st.image("SPCC.jpg", use_container_width=True)
+            # Imagem de capa - Tela abertura
+            st.image("webinar.jpg", use_container_width=True)
             
         st.markdown("""
             <p style='text-align: center; font-size: 35px;'>Faça login para acessar o sistema</p>
         """, unsafe_allow_html=True)
         
         # Login na sidebar
-        st.sidebar.markdown("<h1 style='color: white; font-size: 24px;'>SPCC - ver. 3.0</h1>", unsafe_allow_html=True)
+        st.sidebar.markdown("<h1 style='color: white; font-size: 24px;'>DISC - ver. 1.0</h1>", unsafe_allow_html=True)
 
         # Criar labels personalizados com cor branca
         st.sidebar.markdown("<p style='color: white; margin-bottom: 5px;'>E-mail</p>", unsafe_allow_html=True)
@@ -255,7 +231,7 @@ def authenticate_user():
 
         # link e path do arquivo termos_de_uso.pdf
         aceite_termos = st.sidebar.checkbox(
-            'Declaro que li e aceito os [termos de uso do simulador](https://ag93eventos.com.br/abic/termos_de_uso.pdf)',
+            'Declaro que li e aceito os [termos de uso da ferramenta](https://ag93eventos.com.br/ear/Termos_Uso_DISC.pdf)',
             key='aceite_termos'
         )
 
@@ -303,7 +279,7 @@ def get_timezone_offset():
 def show_welcome():
     """Exibe a tela de boas-vindas com informações do usuário"""
     st.markdown("""
-        <p style='text-align: left; font-size: 40px; font-weight: bold;'>Bem-vindo ao sistema!</p>
+        <p style='text-align: left; font-size: 40px; font-weight: bold;'>Bem-vindo à Perquisa Comportamental DISC</p>
     """, unsafe_allow_html=True)
     
     # Buscar dados do usuário
@@ -361,14 +337,9 @@ def show_welcome():
             <div style="background-color: #8eb0ae; padding: 20px; border-radius: 8px;">
                 <p style="color: #ffffff; font-size: 24px; font-weight: bold;">Módulos Disponíveis</p>
                 <div style="color: #ffffff; font-size: 16px;">
-                    <p>Entrada de Dados - Tipo do Café</p>
-                    <p>Entrada de Dados - Torrefação e Moagem</p>
-                    <p>Entrada de Dados - Embalagem</p>
-                    <p>Simulações da Empresa</p>
-                    <p>Simulações da Empresa Sem Etapa Agrícola</p>
-                    <p>Simulações - Comparação Setorial</p>
-                    <p>Simulações - Comparação Setorial Sem Etapa Agrícola</p>
-                    <p>Simulações - Análise Energética - Torrefação</p>
+                    <p>Entrada de Dados - Perfil DISC</p>
+                    <p>Entrada de Dados - Comportamento DISC</p>                    
+                    <p>Simulações DISC</p>                    
                 </div>
             </div>
         """
@@ -450,7 +421,7 @@ def main():
     # Titulo da página
     st.markdown("""
         <p style='text-align: left; font-size: 44px; font-weight: bold;'>
-            Simulador da Pegada de Carbono do Café Torrado/Moído
+            Assessment DISC
         </p>
     """, unsafe_allow_html=True)
 
@@ -576,7 +547,7 @@ def main():
     st.sidebar.markdown("<br>" * 1, unsafe_allow_html=True)
     
     # Logo do rodapé
-    footer_logo_path = os.path.join(current_dir, "Logo_Pegada_8eb0ae.jpg")
+    footer_logo_path = os.path.join(current_dir, "Logo_1b.jpg")
     if os.path.exists(footer_logo_path):
         col1, col2, col3 = st.sidebar.columns([1,2,1])
         with col2:
