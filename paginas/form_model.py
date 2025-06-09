@@ -1,7 +1,6 @@
 # Arquivo: form_model.py
 # type formula font attribute - somente inteiros
-# 02/04/2025 - 11:00 - alterado para calcular condicaoH sem consultar tabela forms_insumos
-# section = embalagem com 6 colunas / type = input com configuração de estilo
+# 09/06/2025 - 11:00 - alteração DISC
 
 import sqlite3
 import streamlit as st
@@ -329,15 +328,15 @@ def new_user(cursor, user_id):
         st.error(f"Erro ao criar registros para novo usuário: {str(e)}")
         raise
 
-def process_forms_tab(section='cafe'):
+def process_forms_tab(section='perfil'):
     """
     Processa registros da tabela forms_tab e exibe em layout de grade.
     
     Args:
-        section (str): Seção a ser exibida ('cafe', 'moagem' ou 'embalagem')
+        section (str): Seção a ser exibida ('perfil', 'comportamento' ou 'hibrido')
     """
     # Define o número de colunas baseado na seção
-    max_cols = 6 if section == 'embalagem' else 5
+    max_cols = 6 if section == 'hibrido' else 5
     
     conn = None
     try:
@@ -356,12 +355,12 @@ def process_forms_tab(section='cafe'):
         
         # Títulos com estilo baseados na seção
         titles = {
-            'cafe': "Entrada de Dados - Café",
-            'moagem': "Entrada de Dados - Torrefação e Moagem",
-            'embalagem': "Entrada de Dados - Embalagem"
+            'perfil': "Página de Avaliação de Perfis",
+            'comportamento': "Página de Avaliação de Comportamento",
+            'hibrido': "Página de Avaliação Hibrida"
         }
         
-        title_text = titles.get(section, "Página de Entrada de Dados")
+        title_text = titles.get(section, "Página Avaliação de Perfis")
         st.markdown(f"""
             <p style='
                 text-align: left;

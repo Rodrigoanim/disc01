@@ -1,7 +1,7 @@
 # resultados.py
 # Data: 13/05/2025 08:35
 # Pagina de resultados - Dashboard
-# rotina das Simulações, tabelas: forms_resultados, forms_result-sea, forms_setorial, forms_setorial_sea
+# rotina das Simulações, tabelas: forms_resultados, forms_result-sea
 # novo layout para as tabelas e Gráficos - redução de conteudo e ajustes de layout
 
 # type: ignore
@@ -39,6 +39,18 @@ from paginas.form_model_recalc import verificar_dados_usuario, calculate_formula
 import time
 
 from config import DB_PATH  # Adicione esta importação
+
+# Dicionário de títulos para cada tabela
+TITULOS_TABELAS = {
+    "forms_resultados": "Simulador da Pegada de Carbono do Café Torrado/Moído",
+    "forms_result_sea": "Simulador da Pegada de Carbono - Sem Etapa Agrícola"
+}
+
+# Dicionário de subtítulos para cada tabela
+SUBTITULOS_TABELAS = {
+    "forms_resultados": "Avaliação de Perfis",
+    "forms_result_sea": "Simulações da Empresa Sem Etapa Agrícola"
+}
 
 def format_br_number(value):
     """
@@ -699,20 +711,8 @@ def generate_pdf_content(cursor, user_id: int, tabela_escolhida: str):
                 spaceAfter=8
             )
 
-            titulo_map = {
-                "forms_resultados": "Simulador da Pegada de Carbono do Café Torrado/Moído",
-                "forms_result_sea": "Simulador da Pegada de Carbono - Sem Etapa Agrícola",
-                "forms_setorial": "Simulador da Pegada de Carbono do Café Torrado/Moído",
-                "forms_setorial_sea": "Simulador da Pegada de Carbono - Sem Etapa Agrícola"
-            }
-            subtitulo_map = {
-                "forms_resultados": "Simulações da Empresa",
-                "forms_result_sea": "Simulações da Empresa Sem Etapa Agrícola",
-                "forms_setorial": "Simulações - Comparação Setorial",
-                "forms_setorial_sea": "Simulações - Comparação Setorial Sem Etapa Agrícola"
-            }
-            titulo_principal = titulo_map.get(tabela_escolhida, "Simulador")
-            subtitulo_principal = subtitulo_map.get(tabela_escolhida, "Simulações")
+            titulo_principal = TITULOS_TABELAS.get(tabela_escolhida, "Simulador")
+            subtitulo_principal = SUBTITULOS_TABELAS.get(tabela_escolhida, "Simulações")
             elements.append(Paragraph(titulo_principal, title_style))
             elements.append(Spacer(1, 10))
             elements.append(Paragraph(subtitulo_principal, subtitle_style))
@@ -758,13 +758,13 @@ def generate_pdf_content(cursor, user_id: int, tabela_escolhida: str):
                         elements.append(Table([[t]], colWidths=[table_width], style=[('ALIGN', (0,0), (-1,-1), 'CENTER')]))
                         for _ in range(5):
                             elements.append(Spacer(1, 12))
-                # Gráfico Demanda de Energia com altura reduzida em 25%
-                if 'Demanda de Energia (MJ/1000kg de café)' in graficos_dict:
-                    grafico_energia = next((g for g in graficos if 'Demanda de Energia' in g[3]), None)
-                    if grafico_energia:
-                        dados_grafico_energia = gerar_dados_grafico(pdf_cursor, grafico_energia, tabela_escolhida, height_pct=120, width_pct=100)
+                # Gráfico Demanda de Água com altura reduzida em 25%
+                if 'Demanda de Água (m³/1000kg de café)' in graficos_dict:
+                    grafico_agua = next((g for g in graficos if 'Demanda de Água' in g[3]), None)
+                    if grafico_agua:
+                        dados_grafico_agua = gerar_dados_grafico(pdf_cursor, grafico_agua, tabela_escolhida, height_pct=120, width_pct=100)
                         elements.append(Table(
-                            [[Paragraph(dados_grafico_energia['title'], graphic_title_style)], [dados_grafico_energia['image']]],
+                            [[Paragraph(dados_grafico_agua['title'], graphic_title_style)], [dados_grafico_agua['image']]],
                             colWidths=[graph_width],
                             style=[('ALIGN', (0,0), (-1,-1), 'CENTER')]
                         ))
@@ -790,8 +790,8 @@ def generate_pdf_content(cursor, user_id: int, tabela_escolhida: str):
                         elements.append(Spacer(1, 10))
             else:
                 # Layout setorial: só gráficos, 2 por página
-                # Página 1: Demanda de Energia e Demanda de Água
-                palavras_chave_p1 = ["energia", "água"]
+                # Página 1: Demanda de Água
+                palavras_chave_p1 = ["água"]
                 graficos_p1 = []
                 for palavra in palavras_chave_p1:
                     grafico = next((g for g in graficos if palavra in g[3].lower()), None)

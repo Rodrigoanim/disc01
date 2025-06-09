@@ -118,45 +118,8 @@ def show_crud():
             'e_row': 'small',
             'user_id': 'small'
         },
-        'forms_setorial': {
-            'ID_element': 'small',
-            'name_element': 'medium',
-            'type_element': 'small',
-            'math_element': 'small',
-            'msg_element': 'medium',
-            'value_element': 'small',
-            'select_element': 'medium',
-            'str_element': 'medium',
-            'e_col': 'small',
-            'e_row': 'small',
-            'user_id': 'small'
-        },
-        'forms_setorial_sea': {
-            'ID_element': 'small',
-            'name_element': 'medium',
-            'type_element': 'small',
-            'math_element': 'small',
-            'msg_element': 'medium',
-            'value_element': 'small',
-            'select_element': 'medium',
-            'str_element': 'medium',
-            'e_col': 'small',
-            'e_row': 'small',
-            'user_id': 'small'
-        },
-        'forms_energetica': {
-            'ID_element': 'small',
-            'name_element': 'medium',
-            'type_element': 'small',
-            'math_element': 'small',
-            'msg_element': 'medium',
-            'value_element': 'small',
-            'select_element': 'medium',
-            'str_element': 'medium',
-            'e_col': 'small',
-            'e_row': 'small',
-            'user_id': 'small'
-        },
+
+
         'log_acessos': {
             'id': 'small',
             'user_id': 'small',
@@ -172,9 +135,7 @@ def show_crud():
         st.rerun()
     
     # Atualiza a lista de tabelas para incluir a tabela de log_acessos
-    tables = ["", "usuarios", "forms_tab", "forms_insumos", "forms_resultados", 
-              "forms_result_sea", "forms_setorial", "forms_setorial_sea", 
-              "forms_energetica", "log_acessos"]
+    tables = ["", "usuarios", "forms_tab", "forms_resultados", "log_acessos"]
     
     # Cria três colunas, com a do meio tendo 30% da largura
     col1, col2, col3 = st.columns([3.5, 3, 3.5])

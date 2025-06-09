@@ -1,19 +1,24 @@
-# Data: 06/06/2025 - Hora: 10:00
+# Data: 09/06/2025 - Hora: 10:00
 # IDE Cursor - gemini 2.5 pro
 # comando: streamlit run main.py
-# Adaptação para Mobile
+# Adaptação para Mobile e novo conteudo
 
 
 import streamlit as st
 import sqlite3
-from paginas.form_model import process_forms_tab
 from datetime import datetime, timedelta
 import time
 import sys
-from config import DB_PATH, DATA_DIR  # Atualize a importação
+from config import DB_PATH, DATA_DIR
 import os
-from paginas.monitor import registrar_acesso  # Adicione esta importação no topo do arquivo
 import streamlit.components.v1 as components
+
+from paginas.form_model import process_forms_tab
+from paginas.monitor import registrar_acesso, main as show_monitor
+from paginas.crude import show_crud
+from paginas.diagnostico import show_diagnostics
+from paginas.resultados import show_results
+
 
 # Adicione esta linha logo no início do arquivo, após os imports
 # os.environ['RENDER'] = 'true'
@@ -166,7 +171,7 @@ def get_timezone_offset():
 def show_welcome():
     """Exibe a tela de boas-vindas com informações do usuário"""
     st.markdown("""
-        <p style='text-align: left; font-size: 40px; font-weight: bold;'>Bem-vindo à Perquisa Comportamental DISC</p>
+        <p style='text-align: left; font-size: 40px; font-weight: bold;'>Bem-vindo à Pesquisa Comportamental</p>
     """, unsafe_allow_html=True)
     
     # Buscar dados do usuário
@@ -339,29 +344,29 @@ def main():
     
     # --- NAVEGAÇÃO ---
     
-    # Atualizar o mapeamento para incluir o novo nome do CRUD
-    section_map = {
-        "Tipo do Café": "cafe",
-        "Torrefação e Moagem": "moagem",
-        "Embalagem": "embalagem",
-        "da Empresa": "Resultados",
-        "Info Tabelas (CRUD)": "crud"
+    # Mapeamento de páginas para suas funções de handler
+    page_handlers = {
+        "Bem-vindo": show_welcome,
+        "Avaliação de Perfis": lambda: process_forms_tab("perfil"),
+        "Avaliação de Comportamento": lambda: process_forms_tab("comportamento"),
+        "Avaliação Híbrida": lambda: process_forms_tab("hibrido"),
+        "do Perfil": lambda: show_results(tabela_escolhida="forms_resultados", titulo_pagina="Análise: Avaliação de Perfis", user_id=st.session_state.user_id),
+        "Info Tabelas (CRUD)": show_crud,
+        "Monitor de Uso": show_monitor,
+        "Diagnóstico": show_diagnostics,
+        "Zerar Valores": zerar_value_element,
     }
     
     # Criando grupos de menu
     menu_groups = {
-        "Principal": ["Bem-vindo"],
-        "Entrada de Dados": [
-            "Tipo do Café",
-            "Torrefação e Moagem",
-            "Embalagem"
+        "Abertura": ["Bem-vindo"],
+        "Avaliação Comportamental": [
+            "Avaliação de Perfis",
+            "Avaliação de Comportamento",
+            "Avaliação Híbrida"
         ],
-        "Simulações": [
-            "da Empresa",
-            "da Empresa sem Etapa Agrícola",
-            "Comparação Setorial",
-            "Comparação Setorial SEA",
-            "Análise Energética - Torrefação"
+        "Análise": [
+            "do Perfil",
         ],
         "Administração": []  # Iniciando vazio para adicionar itens na ordem correta
     }
@@ -402,40 +407,12 @@ def main():
         save_current_form_data()
         st.session_state["previous_page"] = section
 
-    # Processa a seção selecionada
-    if section == "Bem-vindo":
-        show_welcome()
-    elif section in ["Tipo do Café", "Torrefação e Moagem", "Embalagem"]:
-        process_forms_tab(section_map[section])
-    elif section in [
-        "da Empresa",
-        "da Empresa sem Etapa Agrícola",
-        "Comparação Setorial",
-        "Comparação Setorial SEA"
-    ]:
-        # Mapeamento de seções para títulos completos
-        section_to_title = {
-            "da Empresa": "Simulações da Empresa",
-            "da Empresa sem Etapa Agrícola": "Simulações da Empresa Sem Etapa Agrícola",
-            "Comparação Setorial": "Simulações - Comparação Setorial",
-            "Comparação Setorial SEA": "Simulações - Comparação Setorial Sem Etapa Agrícola"
-        }
-        # Passa o título completo para show_page
-        show_page(selected_simulation=section_to_title[section])
-    elif section == "Análise Energética - Torrefação":
-        from paginas.result_energetica import show_results as show_energetica
-        show_energetica()
-    elif section == "Info Tabelas (CRUD)":
-        from paginas.crude import show_crud
-        show_crud()
-    elif section == "Monitor de Uso":
-        from paginas.monitor import main as show_monitor
-        show_monitor()
-    elif section == "Diagnóstico":
-        from paginas.diagnostico import show_diagnostics
-        show_diagnostics()
-    elif section == "Zerar Valores":
-        zerar_value_element()
+    # Processa a seção selecionada usando o dicionário de handlers
+    handler = page_handlers.get(section)
+    if handler:
+        handler()
+    else:
+        st.error("Página não encontrada.")
 
     # --- FOOTER ---
     st.markdown("<br>" * 1, unsafe_allow_html=True)
@@ -451,92 +428,12 @@ def main():
                 use_container_width=False
             )
 
-def show_page(selected_simulation=None):
-    """
-    Gerencia a exibição das páginas de simulação
-    Args:
-        selected_simulation: Título da simulação selecionada
-    """
-    # Mapeamento de páginas para tabelas e títulos
-    PAGES_CONFIG = {
-        "Simulações da Empresa": {
-            "tabela": "forms_resultados",
-            "titulo": "Simulações da Empresa"
-        },
-        "Simulações da Empresa Sem Etapa Agrícola": {
-            "tabela": "forms_result_sea",
-            "titulo": "Simulações da Empresa Sem Etapa Agrícola"
-        },
-        "Simulações - Comparação Setorial": {
-            "tabela": "forms_setorial",
-            "titulo": "Simulações - Comparação Setorial"
-        },
-        "Simulações - Comparação Setorial Sem Etapa Agrícola": {
-            "tabela": "forms_setorial_sea",
-            "titulo": "Simulações - Comparação Setorial Sem Etapa Agrícola"
-        }
-    }
-
-    # Verifica se usuário está logado
-    if "user_id" not in st.session_state:
-        st.warning("Por favor, faça login para continuar.")
-        return
-
-    # Usa a simulação passada ou permite seleção via selectbox
-    if selected_simulation and selected_simulation in PAGES_CONFIG:
-        page_config = PAGES_CONFIG[selected_simulation]
-    else:
-        st.error("Simulação não encontrada")
-        return
-    
-    # Chama a função show_results com os parâmetros apropriados
-    from paginas.resultados import show_results
-    show_results(
-        tabela_escolhida=page_config["tabela"],
-        titulo_pagina=page_config["titulo"],
-        user_id=st.session_state.user_id
-    )
-
 def save_current_form_data():
     """Salva os dados do formulário atual quando houver mudança de página"""
-    if "form_data" in st.session_state:
+    if "form_data" in st.session_state and st.session_state["form_data"]:
         with st.spinner('Salvando dados...'):
             conn = sqlite3.connect(DB_PATH)
             cursor = conn.cursor()
-            
-            # Queries SQL sem comentários para evitar erros de parsing
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS form_cafe (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id TEXT,
-                    data_input TIMESTAMP,
-                    tipo_cafe TEXT,
-                    quantidade FLOAT,
-                    FOREIGN KEY (user_id) REFERENCES usuarios(user_id)
-                )
-            """)
-            
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS form_moagem (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id TEXT,
-                    data_input TIMESTAMP,
-                    tipo_moagem TEXT,
-                    temperatura FLOAT,
-                    FOREIGN KEY (user_id) REFERENCES usuarios(user_id)
-                )
-            """)
-            
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS form_embalagem (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id TEXT,
-                    data_input TIMESTAMP,
-                    tipo_embalagem TEXT,
-                    peso FLOAT,
-                    FOREIGN KEY (user_id) REFERENCES usuarios(user_id)
-                )
-            """)
             
             previous_page = st.session_state.get("previous_page", "")
             
