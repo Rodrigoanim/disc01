@@ -939,23 +939,25 @@ def show_results(tabela_escolhida: str, titulo_pagina: str, user_id: int):
                         tabela_dados_sem_titulo(cursor, tabela)
             
             # Depois processar outros elementos em duas colunas
-            outros_elementos = [elem for elem in row_data if elem[1] != 'tabela']
+            graficos_na_linha = [elem for elem in row_data if elem[1] == 'grafico']
+            for grafico in graficos_na_linha:
+                grafico_count += 1
+                grafico_barra(cursor, grafico)
+                if grafico_count == 2:
+                    st.markdown('<div class="page-break"></div>', unsafe_allow_html=True)
+
+            outros_elementos = [elem for elem in row_data if elem[1] not in ('tabela', 'grafico')]
             if outros_elementos:
                 with st.container():
                     col1, col2 = st.columns(2)
                     
-                    # Processar elementos não-tabela
+                    # Processar elementos não-tabela e não-gráfico
                     for element in outros_elementos:
                         e_col = element[7]  # e_col do elemento
                         
                         if e_col <= 3:
                             with col1:
-                                if element[1] == 'grafico':
-                                    grafico_count += 1
-                                    grafico_barra(cursor, element)
-                                    if grafico_count == 2:
-                                        st.markdown('<div class="page-break"></div>', unsafe_allow_html=True)
-                                elif element[1] == 'titulo':
+                                if element[1] == 'titulo':
                                     titulo(cursor, element)
                                 elif element[1] == 'pula linha':
                                     pula_linha(cursor, element)
@@ -963,12 +965,7 @@ def show_results(tabela_escolhida: str, titulo_pagina: str, user_id: int):
                                     call_dados(cursor, element, tabela_escolhida)
                         else:
                             with col2:
-                                if element[1] == 'grafico':
-                                    grafico_count += 1
-                                    grafico_barra(cursor, element)
-                                    if grafico_count == 2:
-                                        st.markdown('<div class="page-break"></div>', unsafe_allow_html=True)
-                                elif element[1] == 'titulo':
+                                if element[1] == 'titulo':
                                     titulo(cursor, element)
                                 elif element[1] == 'pula linha':
                                     pula_linha(cursor, element)
