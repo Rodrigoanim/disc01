@@ -360,7 +360,7 @@ def process_forms_tab(section='perfil'):
             'resultado': "Módulo de Resultados"
         }
         
-        title_text = titles.get(section, "Avaliação de Perfis")
+        title_text = titles.get(section, "mòdulo de Avaliação de Perfis")
         st.markdown(f"""
             <p style='
                 text-align: left;

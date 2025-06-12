@@ -1065,7 +1065,14 @@ def tabela_dados_sem_titulo(cursor, element):
 def analisar_perfil_disc(cursor, user_id):
     """
     Realiza uma análise completa do perfil DISC do usuário, buscando dinamicamente
-    os dados a partir da configuração do gráfico de resultados.
+    os dados a partir da configuração do gráfico de resultados e de um arquivo .md
+    estruturado com tags.
+
+    A base de conhecimento deve ser estruturada com as seguintes tags:
+    - <Perfis_Individuais>...</Perfis_Individuais>
+    - <Perfis_Combinados>...</Perfis_Combinados>
+    - <Excesso_Pontos_Fortes>...</Excesso_Pontos_Fortes>
+    - <Caminhos_Aperfeiçoamento>...</Caminhos_Aperfeiçoamento>
 
     Args:
         cursor: Cursor do banco de dados.
@@ -1083,113 +1090,167 @@ def analisar_perfil_disc(cursor, user_id):
             WHERE user_id = ? AND type_element = 'grafico' AND msg_element LIKE '%PESQUISA COMPORTAMENTAL%'
             LIMIT 1
         """, (user_id,))
-        
         result = cursor.fetchone()
-
         if not result or not result[0] or not result[1]:
-            return "Análise não disponível: A configuração do gráfico 'PESQUISA COMPORTAMENTAL' não foi encontrada no banco de dados."
+            return "Análise não disponível: A configuração do gráfico 'PESQUISA COMPORTAMENTAL' não foi encontrada."
 
-        name_elements_str, labels_str = result
-        name_elements = [name.strip() for name in name_elements_str.split('|')]
-        labels = [label.strip() for label in labels_str.split('|')]
-
-        # 2. Mapear os name_elements para as letras do perfil (D, I, S, C)
+        name_elements = [name.strip() for name in result[0].split('|')]
+        labels = [label.strip() for label in result[1].split('|')]
         profile_map = {name: label[0].upper() for name, label in zip(name_elements, labels)}
 
-        # 3. Obter os valores DISC do usuário usando os name_elements encontrados
+        # 2. Obter os valores DISC do usuário
         placeholders = ','.join('?' for _ in name_elements)
         cursor.execute(f"""
             SELECT name_element, value_element
             FROM {tabela}
             WHERE user_id = ? AND name_element IN ({placeholders})
         """, (user_id, *name_elements))
-        
         resultados_disc_raw = cursor.fetchall()
-
         if not resultados_disc_raw:
             return "Não foram encontrados resultados DISC para este usuário."
 
-        # 4. Construir o dicionário de perfil (e.g., {'D': 12.0, 'I': 9.0, ...})
-        perfil = {}
-        for name, value in resultados_disc_raw:
-            if name in profile_map:
-                profile_letter = profile_map[name]
-                perfil[profile_letter] = float(value) if value is not None else 0.0
-        
+        perfil = {profile_map.get(name, ''): float(value if value is not None else 0.0) for name, value in resultados_disc_raw}
+        perfil = {k: v for k, v in perfil.items() if k} # Remove chaves vazias se houver
         if len(perfil) < 4:
             return "Dados para a análise DISC estão incompletos."
 
-        # 5. Ler a base de conhecimento
+        # 3. Ler e parsear a base de conhecimento
         try:
             with open('base_conhecimento_disc.md', 'r', encoding='utf-8') as f:
                 base_conhecimento = f.read()
         except FileNotFoundError:
-            return "Arquivo 'base_conhecimento_disc.md' não encontrado. Análise não pode ser gerada."
+            st.error("Arquivo 'base_conhecimento_disc.md' não encontrado.")
+            return "Análise não disponível: arquivo de conhecimento ausente."
 
-        # 6. Gerar a análise com base no perfil e na base de conhecimento
+        secoes = {}
+        tags = {
+            "individuais": ("<Perfis_Individuais>", "</Perfis_Individuais>"),
+            "combinados": ("<Perfis_Combinados>", "</Perfis_Combinados>"),
+            "excesso": ("<Excesso_Pontos_Fortes>", "</Excesso_Pontos_Fortes>"),
+            "aperfeicoamento": ("<Caminhos_Aperfeiçoamento>", "</Caminhos_Aperfeiçoamento>")
+        }
+        for nome, (inicio_tag, fim_tag) in tags.items():
+            inicio = base_conhecimento.find(inicio_tag)
+            fim = base_conhecimento.find(fim_tag, inicio)
+            if inicio != -1 and fim != -1:
+                secoes[nome] = base_conhecimento[inicio + len(inicio_tag):fim].strip()
+            else:
+                secoes[nome] = ""
+
+        # 4. Definir perfis primário e secundário
         perfil_ordenado = sorted(perfil.items(), key=lambda item: item[1], reverse=True)
         perfil_primario, _ = perfil_ordenado[0]
         perfil_secundario, _ = perfil_ordenado[1]
 
+        # 5. Helper para extrair conteúdo
+        def extrair_conteudo(secao_texto, chaves_busca):
+            for chave in chaves_busca:
+                inicio = secao_texto.find(chave)
+                if inicio != -1:
+                    fim = secao_texto.find('###', inicio + len(chave))
+                    conteudo_bloco = secao_texto[inicio:fim if fim != -1 else len(secao_texto)].strip()
+                    # Retorna o conteúdo APÓS a linha de chave (ex: "### D")
+                    return conteudo_bloco.split('\n', 1)[1].strip() if '\n' in conteudo_bloco else ""
+            return ""
+
+        def formatar_tabela_html(raw_text, title):
+            """
+            Formata um texto com estrutura de tabela (cabeçalho e linhas separadas
+            por quebras de linha, colunas por '|') em uma tabela HTML estilizada.
+            """
+            if not raw_text or '|' not in raw_text:
+                return f"<h4>{title}</h4><p>{raw_text}</p>" if raw_text else ""
+
+            lines = [line.strip() for line in raw_text.split('\n') if line.strip()]
+            if not lines or len(lines) < 2:
+                return f"<h4>{title}</h4><p>{raw_text}</p>"
+
+            header_cols = [h.strip() for h in lines[0].split('|')]
+            if not header_cols:
+                return f"<h4>{title}</h4><p>{raw_text}</p>"
+
+            html = f"<br><h4>{title}</h4>"
+            html += "<div style='font-size: 16px; width: 95%; margin: 0 auto;'>"
+            html += "<table style='width: 100%; border-collapse: separate; border-spacing: 0; border-radius: 10px; overflow: hidden; box-shadow: 0 0 8px rgba(0,0,0,0.1);'>"
+            
+            html += "<thead><tr style='background-color: #e8f5e9;'>"
+            for col_title in header_cols:
+                html += f"<th style='text-align: left; padding: 12px; border-bottom: 2px solid #dee2e6;'>{col_title}</th>"
+            html += "</tr></thead>"
+            
+            html += "<tbody>"
+            row_data = lines[1:]
+            for i, row_str in enumerate(row_data):
+                cols = [c.strip() for c in row_str.split('|')]
+                if len(cols) == len(header_cols):
+                    bg_color_style = "background-color: #f8f9fa;" if i % 2 else "background-color: #ffffff;"
+                    html += f"<tr style='{bg_color_style}'>"
+                    for col_data in cols:
+                        html += f"<td style='padding: 10px 12px; border-bottom: 1px solid #dee2e6;'>{col_data}</td>"
+                    html += "</tr>"
+            html += "</tbody></table></div>"
+            return html
+
+        # 6. Extrair todas as partes da análise
+        # Perfil Combinado
+        chaves_combinado = [f"### {perfil_primario}/{perfil_secundario} -", f"### {perfil_secundario}/{perfil_primario} -"]
+        desc_combinado = extrair_conteudo(secoes.get("combinados", ""), chaves_combinado)
+
+        # Perfil Individual (com pontos fortes e limitações)
+        conteudo_individual_raw = extrair_conteudo(secoes.get("individuais", ""), [f"### Perfil {perfil_primario} -"])
+        desc_individual, pontos_fortes_html, limitacoes_html = "", "", ""
+        if conteudo_individual_raw:
+            inicio_fortes = conteudo_individual_raw.find('- **Pontos Fortes:**')
+            desc_individual = conteudo_individual_raw[:inicio_fortes if inicio_fortes != -1 else len(conteudo_individual_raw)].strip()
+            
+            if inicio_fortes != -1:
+                inicio_limit = conteudo_individual_raw.find('- **Limitações:**', inicio_fortes)
+                fortes_raw = conteudo_individual_raw[inicio_fortes:inicio_limit if inicio_limit != -1 else len(conteudo_individual_raw)]
+                fortes_raw = fortes_raw.replace('- **Pontos Fortes:**', '').strip()
+                fortes_lista = [f"<li>{item.strip()}</li>" for item in fortes_raw.split(',') if item.strip()]
+                pontos_fortes_html = f"<h4>Pontos Fortes ({perfil_primario})</h4><ul>{''.join(fortes_lista)}</ul>"
+
+            if inicio_limit != -1:
+                limitacoes_raw = conteudo_individual_raw[inicio_limit:].replace('- **Limitações:**', '').strip()
+                limitacoes_lista = [f"<li>{item.strip()}</li>" for item in limitacoes_raw.split(',') if item.strip()]
+                limitacoes_html = f"<h4>Limitações a observar ({perfil_primario})</h4><ul>{''.join(limitacoes_lista)}</ul>"
+
+        # Extrair e formatar seções de Excesso e Aperfeiçoamento
+        desc_excesso_raw = extrair_conteudo(secoes.get("excesso", ""), [f"### {perfil_primario}"])
+        desc_aperfeicoamento_raw = extrair_conteudo(secoes.get("aperfeicoamento", ""), [f"### {perfil_primario}"])
+
+        html_excesso = formatar_tabela_html(desc_excesso_raw, "Quando seus Pontos Fortes são usados em Excesso")
+        html_aperfeicoamento = formatar_tabela_html(desc_aperfeicoamento_raw, "Caminhos para o Aperfeiçoamento e Desenvolvimento")
+
+        # 7. Montar a análise final
         analise = f"## Análise Comportamental DISC\n\n"
         analise += f"### Seu Perfil: **{perfil_primario}/{perfil_secundario}**\n\n"
 
-        # Extrai a descrição do perfil combinado
-        perfil_combinado_key = f"### {perfil_primario}/{perfil_secundario} - "
-        perfil_combinado_key_alt = f"### {perfil_secundario}/{perfil_primario} - "
-
-        inicio_desc = base_conhecimento.find(perfil_combinado_key)
-        if inicio_desc == -1:
-            inicio_desc = base_conhecimento.find(perfil_combinado_key_alt)
-
-        if inicio_desc != -1:
-            fim_desc = base_conhecimento.find('###', inicio_desc + len(perfil_combinado_key))
-            if fim_desc == -1: # if not found, find next major section
-                fim_desc = base_conhecimento.find('##', inicio_desc + len(perfil_combinado_key))
-            if fim_desc == -1: # if still not found, go to end of file
-                fim_desc = len(base_conhecimento)
-            
-            secao_completa = base_conhecimento[inicio_desc:fim_desc].strip()
-            descricao = secao_completa.split('\n', 1)[1] if '\n' in secao_completa else ''
-            analise += f"{descricao}\n\n"
-        else:
-            # Fallback for individual profile
-            inicio_desc_individual = base_conhecimento.find(f"### Perfil {perfil_primario} - ")
-            if inicio_desc_individual != -1:
-                fim_desc_individual = base_conhecimento.find('###', inicio_desc_individual + 1)
-                secao_completa = base_conhecimento[inicio_desc_individual:fim_desc_individual].strip()
-                descricao = secao_completa.split('\n', 1)[1] if '\n' in secao_completa else ''
-                analise += f"**Perfil Principal: {perfil_primario}**\n{descricao}\n\n"
-
-        # Adicionar pontos fortes e limitações do perfil primário
-        inicio_secao_primario = base_conhecimento.find(f"### Perfil {perfil_primario} - ")
-        if inicio_secao_primario != -1:
-            fim_secao_primario = base_conhecimento.find('###', inicio_secao_primario + 1)
-            if fim_secao_primario == -1:
-                 fim_secao_primario = len(base_conhecimento)
-            secao_primario_texto = base_conhecimento[inicio_secao_primario:fim_secao_primario]
-
-            # Pontos Fortes
-            inicio_fortes = secao_primario_texto.find(f'- **Pontos Fortes:**')
-            if inicio_fortes != -1:
-                fim_fortes = secao_primario_texto.find('- **Limitações:**', inicio_fortes)
-                fortes_raw = secao_primario_texto[inicio_fortes:fim_fortes].replace("- **Pontos Fortes:**", "").strip()
-                fortes_lista = [f"<li>{item.strip()}</li>" for item in fortes_raw.split(',') if item.strip()]
-                analise += f"#### Pontos Fortes do seu perfil principal ({perfil_primario}):\n"
-                analise += f"<ul>{''.join(fortes_lista)}</ul>\n"
-
-            # Limitações
-            inicio_limit = secao_primario_texto.find(f'- **Limitações:**')
-            if inicio_limit != -1:
-                limitacoes_raw = secao_primario_texto[inicio_limit:].replace("- **Limitações:**", "").strip()
-                limitacoes_lista = [f"<li>{item.strip()}</li>" for item in limitacoes_raw.split(',') if item.strip()]
-                analise += f"#### Limitações a observar ({perfil_primario}):\n"
-                analise += f"<ul>{''.join(limitacoes_lista)}</ul>\n"
+        if desc_combinado:
+            analise += f"### O Perfil Combinado: {perfil_primario}/{perfil_secundario}\n{desc_combinado}\n\n"
         
+        if desc_individual:
+            analise += f"### Características do seu Perfil Principal: {perfil_primario}\n{desc_individual}\n"
+        
+        if pontos_fortes_html:
+            analise += f"{pontos_fortes_html}\n"
+
+        if limitacoes_html:
+            analise += f"{limitacoes_html}\n"
+        
+        if html_excesso:
+            analise += f"{html_excesso}\n\n"
+
+        if html_aperfeicoamento:
+            analise += f"{html_aperfeicoamento}\n\n"
+
+        if not any([desc_combinado, desc_individual, desc_excesso_raw, desc_aperfeicoamento_raw]):
+            return "Não foi possível gerar a análise completa. Verifique a estrutura do arquivo 'base_conhecimento_disc.md' e as tags de seção."
+
         return analise
 
     except Exception as e:
-        traceback.print_exc() # Printar traceback no terminal para debug
+        traceback.print_exc()
         return f"Ocorreu um erro inesperado ao gerar a análise DISC: {str(e)}"
 
 if __name__ == "__main__":
