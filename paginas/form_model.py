@@ -1,6 +1,6 @@
 # Arquivo: form_model.py
 # type formula font attribute - somente inteiros
-# 09/06/2025 - 11:00 - alteração DISC
+# 12/06/2025 - 11:00 - alteração DISC
 
 import sqlite3
 import streamlit as st
@@ -333,10 +333,10 @@ def process_forms_tab(section='perfil'):
     Processa registros da tabela forms_tab e exibe em layout de grade.
     
     Args:
-        section (str): Seção a ser exibida ('perfil', 'comportamento' ou 'hibrido')
+        section (str): Seção a ser exibida ('perfil', 'comportamento' ou 'resultado')
     """
-    # Define o número de colunas baseado na seção
-    max_cols = 6 if section == 'hibrido' else 5
+    # Define o número de colunas
+    max_cols = 5
     
     conn = None
     try:
@@ -355,12 +355,12 @@ def process_forms_tab(section='perfil'):
         
         # Títulos com estilo baseados na seção
         titles = {
-            'perfil': "Página de Avaliação de Perfis",
-            'comportamento': "Página de Avaliação de Comportamento",
-            'hibrido': "Página de Avaliação Hibrida"
+            'perfil': "Módulo de Avaliação de Perfis",
+            'comportamento': "Módulo de Avaliação de Comportamento",
+            'resultado': "Módulo de Resultados"
         }
         
-        title_text = titles.get(section, "Página Avaliação de Perfis")
+        title_text = titles.get(section, "Avaliação de Perfis")
         st.markdown(f"""
             <p style='
                 text-align: left;

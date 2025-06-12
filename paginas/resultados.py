@@ -1,8 +1,8 @@
 # resultados.py
 # Data: 13/05/2025 08:35
 # Pagina de resultados - Dashboard
-# rotina das Simulações, tabelas: forms_resultados, forms_result-sea
-# novo layout para as tabelas e Gráficos - redução de conteudo e ajustes de layout
+# rotina das Simulações, tabelas: forms_resultados
+
 
 # type: ignore
 # pylance: disable=reportMissingModuleSource
@@ -42,14 +42,14 @@ from config import DB_PATH  # Adicione esta importação
 
 # Dicionário de títulos para cada tabela
 TITULOS_TABELAS = {
-    "forms_resultados": "Simulador da Pegada de Carbono do Café Torrado/Moído",
-    "forms_result_sea": "Simulador da Pegada de Carbono - Sem Etapa Agrícola"
+    "forms_resultados": "Análise: Avaliação de Perfis",
+    "forms_result_sea": "Simulador da Pegada de Carbono"
 }
 
 # Dicionário de subtítulos para cada tabela
 SUBTITULOS_TABELAS = {
     "forms_resultados": "Avaliação de Perfis",
-    "forms_result_sea": "Simulações da Empresa Sem Etapa Agrícola"
+    "forms_result_sea": "Simulações da Empresa"
 }
 
 def format_br_number(value):
@@ -219,7 +219,7 @@ def grafico_barra(cursor, element):
     
     Args:
         cursor: Cursor do banco de dados SQLite
-        element: Tupla contendo os dados do elemento do tipo 'grafico'
+        element: Tupla contendo os dados do elemento tipo 'grafico'
             [0] name_element: Nome do elemento
             [1] type_element: Tipo do elemento (deve ser 'grafico')
             [3] msg_element: Título/mensagem do gráfico
@@ -288,7 +288,7 @@ def grafico_barra(cursor, element):
             st.markdown(f"""
                 <p style='
                     text-align: center;
-                    font-size: 24px;
+                    font-size: 31px;
                     font-weight: bold;
                     color: #1E1E1E;
                     margin: 15px 0;
@@ -316,11 +316,11 @@ def grafico_barra(cursor, element):
             width=None,  # largura responsiva
             # Configuração do eixo X
             xaxis=dict(
-                tickfont=dict(size=8),  # reduzido em 40%
+                tickfont=dict(size=16),  # aumentado em 30%
             ),
             # Configuração do eixo Y
             yaxis=dict(
-                tickfont=dict(size=14),  # tamanho da fonte
+                tickfont=dict(size=18),  # aumentado em 30%
                 tickformat=",.",  # formato dos números
                 separatethousands=True  # separador de milhar
             ),
@@ -537,11 +537,11 @@ def gerar_dados_grafico(cursor, elemento, tabela_escolhida: str, height_pct=100,
             margin=dict(t=30, b=50),
             xaxis=dict(
                 title=None,
-                tickfont=dict(size=8)  # reduzido em 40%
+                tickfont=dict(size=16)  # aumentado em 30%
             ),
             yaxis=dict(
                 title=None,
-                tickfont=dict(size=10), # reduzido em 30%
+                tickfont=dict(size=18),  # aumentado em 30%
                 tickformat=",.",
                 separatethousands=True
             )
@@ -698,11 +698,11 @@ def generate_pdf_content(cursor, user_id: int, tabela_escolhida: str):
                 ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f5f5f5')])
             ])
 
-            # Estilo para títulos dos gráficos (reduzido em 30%)
+            # Estilo para títulos dos gráficos (aumentado em 30%)
             graphic_title_style = ParagraphStyle(
                 'GraphicTitle',
                 parent=styles['Heading2'],
-                fontSize=14,  # 30% menor que 20px
+                fontSize=18,  # aumentado em 30%
                 alignment=1,
                 textColor=colors.HexColor('#1E1E1E'),
                 fontName='Helvetica',
@@ -711,8 +711,8 @@ def generate_pdf_content(cursor, user_id: int, tabela_escolhida: str):
                 spaceAfter=8
             )
 
-            titulo_principal = TITULOS_TABELAS.get(tabela_escolhida, "Simulador")
-            subtitulo_principal = SUBTITULOS_TABELAS.get(tabela_escolhida, "Simulações")
+            titulo_principal = TITULOS_TABELAS.get(tabela_escolhida, "Análise")
+            subtitulo_principal = SUBTITULOS_TABELAS.get(tabela_escolhida, "Análises")
             elements.append(Paragraph(titulo_principal, title_style))
             elements.append(Spacer(1, 10))
             elements.append(Paragraph(subtitulo_principal, subtitle_style))
@@ -972,6 +972,13 @@ def show_results(tabela_escolhida: str, titulo_pagina: str, user_id: int):
                                 elif element[1] == 'call_dados':
                                     call_dados(cursor, element, tabela_escolhida)
         
+        # 5. Gerar e exibir a análise DISC
+        with st.expander("Clique aqui para ver sua Análise de Perfil DISC Completa", expanded=False):
+            st.markdown("---")
+            analise_texto = analisar_perfil_disc(cursor, user_id)
+            st.markdown(analise_texto, unsafe_allow_html=True)
+            st.markdown("---")
+
     except Exception as e:
         st.error(f"Erro ao carregar resultados: {str(e)}")
     finally:
@@ -1054,6 +1061,136 @@ def tabela_dados_sem_titulo(cursor, element):
         
     except Exception as e:
         st.error(f"Erro ao criar tabela: {str(e)}")
+
+def analisar_perfil_disc(cursor, user_id):
+    """
+    Realiza uma análise completa do perfil DISC do usuário, buscando dinamicamente
+    os dados a partir da configuração do gráfico de resultados.
+
+    Args:
+        cursor: Cursor do banco de dados.
+        user_id (int): ID do usuário.
+
+    Returns:
+        str: Uma string formatada em Markdown com a análise completa.
+    """
+    try:
+        # 1. Encontrar o gráfico de resultados DISC para obter os name_elements corretos
+        tabela = st.session_state.tabela_escolhida
+        cursor.execute(f"""
+            SELECT select_element, str_element
+            FROM {tabela}
+            WHERE user_id = ? AND type_element = 'grafico' AND msg_element LIKE '%PESQUISA COMPORTAMENTAL%'
+            LIMIT 1
+        """, (user_id,))
+        
+        result = cursor.fetchone()
+
+        if not result or not result[0] or not result[1]:
+            return "Análise não disponível: A configuração do gráfico 'PESQUISA COMPORTAMENTAL' não foi encontrada no banco de dados."
+
+        name_elements_str, labels_str = result
+        name_elements = [name.strip() for name in name_elements_str.split('|')]
+        labels = [label.strip() for label in labels_str.split('|')]
+
+        # 2. Mapear os name_elements para as letras do perfil (D, I, S, C)
+        profile_map = {name: label[0].upper() for name, label in zip(name_elements, labels)}
+
+        # 3. Obter os valores DISC do usuário usando os name_elements encontrados
+        placeholders = ','.join('?' for _ in name_elements)
+        cursor.execute(f"""
+            SELECT name_element, value_element
+            FROM {tabela}
+            WHERE user_id = ? AND name_element IN ({placeholders})
+        """, (user_id, *name_elements))
+        
+        resultados_disc_raw = cursor.fetchall()
+
+        if not resultados_disc_raw:
+            return "Não foram encontrados resultados DISC para este usuário."
+
+        # 4. Construir o dicionário de perfil (e.g., {'D': 12.0, 'I': 9.0, ...})
+        perfil = {}
+        for name, value in resultados_disc_raw:
+            if name in profile_map:
+                profile_letter = profile_map[name]
+                perfil[profile_letter] = float(value) if value is not None else 0.0
+        
+        if len(perfil) < 4:
+            return "Dados para a análise DISC estão incompletos."
+
+        # 5. Ler a base de conhecimento
+        try:
+            with open('base_conhecimento_disc.md', 'r', encoding='utf-8') as f:
+                base_conhecimento = f.read()
+        except FileNotFoundError:
+            return "Arquivo 'base_conhecimento_disc.md' não encontrado. Análise não pode ser gerada."
+
+        # 6. Gerar a análise com base no perfil e na base de conhecimento
+        perfil_ordenado = sorted(perfil.items(), key=lambda item: item[1], reverse=True)
+        perfil_primario, _ = perfil_ordenado[0]
+        perfil_secundario, _ = perfil_ordenado[1]
+
+        analise = f"## Análise Comportamental DISC\n\n"
+        analise += f"### Seu Perfil: **{perfil_primario}/{perfil_secundario}**\n\n"
+
+        # Extrai a descrição do perfil combinado
+        perfil_combinado_key = f"### {perfil_primario}/{perfil_secundario} - "
+        perfil_combinado_key_alt = f"### {perfil_secundario}/{perfil_primario} - "
+
+        inicio_desc = base_conhecimento.find(perfil_combinado_key)
+        if inicio_desc == -1:
+            inicio_desc = base_conhecimento.find(perfil_combinado_key_alt)
+
+        if inicio_desc != -1:
+            fim_desc = base_conhecimento.find('###', inicio_desc + len(perfil_combinado_key))
+            if fim_desc == -1: # if not found, find next major section
+                fim_desc = base_conhecimento.find('##', inicio_desc + len(perfil_combinado_key))
+            if fim_desc == -1: # if still not found, go to end of file
+                fim_desc = len(base_conhecimento)
+            
+            secao_completa = base_conhecimento[inicio_desc:fim_desc].strip()
+            descricao = secao_completa.split('\n', 1)[1] if '\n' in secao_completa else ''
+            analise += f"{descricao}\n\n"
+        else:
+            # Fallback for individual profile
+            inicio_desc_individual = base_conhecimento.find(f"### Perfil {perfil_primario} - ")
+            if inicio_desc_individual != -1:
+                fim_desc_individual = base_conhecimento.find('###', inicio_desc_individual + 1)
+                secao_completa = base_conhecimento[inicio_desc_individual:fim_desc_individual].strip()
+                descricao = secao_completa.split('\n', 1)[1] if '\n' in secao_completa else ''
+                analise += f"**Perfil Principal: {perfil_primario}**\n{descricao}\n\n"
+
+        # Adicionar pontos fortes e limitações do perfil primário
+        inicio_secao_primario = base_conhecimento.find(f"### Perfil {perfil_primario} - ")
+        if inicio_secao_primario != -1:
+            fim_secao_primario = base_conhecimento.find('###', inicio_secao_primario + 1)
+            if fim_secao_primario == -1:
+                 fim_secao_primario = len(base_conhecimento)
+            secao_primario_texto = base_conhecimento[inicio_secao_primario:fim_secao_primario]
+
+            # Pontos Fortes
+            inicio_fortes = secao_primario_texto.find(f'- **Pontos Fortes:**')
+            if inicio_fortes != -1:
+                fim_fortes = secao_primario_texto.find('- **Limitações:**', inicio_fortes)
+                fortes_raw = secao_primario_texto[inicio_fortes:fim_fortes].replace("- **Pontos Fortes:**", "").strip()
+                fortes_lista = [f"<li>{item.strip()}</li>" for item in fortes_raw.split(',') if item.strip()]
+                analise += f"#### Pontos Fortes do seu perfil principal ({perfil_primario}):\n"
+                analise += f"<ul>{''.join(fortes_lista)}</ul>\n"
+
+            # Limitações
+            inicio_limit = secao_primario_texto.find(f'- **Limitações:**')
+            if inicio_limit != -1:
+                limitacoes_raw = secao_primario_texto[inicio_limit:].replace("- **Limitações:**", "").strip()
+                limitacoes_lista = [f"<li>{item.strip()}</li>" for item in limitacoes_raw.split(',') if item.strip()]
+                analise += f"#### Limitações a observar ({perfil_primario}):\n"
+                analise += f"<ul>{''.join(limitacoes_lista)}</ul>\n"
+        
+        return analise
+
+    except Exception as e:
+        traceback.print_exc() # Printar traceback no terminal para debug
+        return f"Ocorreu um erro inesperado ao gerar a análise DISC: {str(e)}"
 
 if __name__ == "__main__":
     show_results()

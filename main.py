@@ -1,7 +1,7 @@
-# Data: 09/06/2025 - Hora: 10:00
+# Data: 12/06/2025 - Hora: 09:00
 # IDE Cursor - gemini 2.5 pro
 # comando: streamlit run main.py
-# Adaptação para Mobile e novo conteudo
+# Adaptação DISC para Mobile
 
 
 import streamlit as st
@@ -192,46 +192,43 @@ def show_welcome():
     # Layout em colunas usando st.columns
     col1, col2, col3 = st.columns(3)
     
-    # Coluna 1: Seus Dados
+    # Coluna 1: Propósito
     with col1:
         st.markdown(f"""
-            <div style="background-color: #007a7d; padding: 20px; border-radius: 8px;">
-                <p style="color: #ffffff; font-size: 24px; font-weight: bold;">Seus Dados</p>
+            <div style="background-color: #007a7d; padding: 20px; border-radius: 8px; height: 100%;">
+                <p style="color: #ffffff; font-size: 24px; font-weight: bold;">Propósito</p>
                 <div style="color: #ffffff; font-size: 16px;">
-                    <p>ID: {st.session_state.get('user_id')}</p>
-                    <p>Nome: {st.session_state.get('user_name')}</p>
-                    <p>E-mail: {user_info[0]}</p>
-                    <p>Empresa: {empresa}</p>
-                    <p>Perfil: {st.session_state.get('user_profile')}</p>
+                    <p>Este Web App tem como objetivo identificar o seu estilo comportamental predominante conforme a metodologia DISC (Dominância, Influência, Estabilidade e Conformidade).</p>
                 </div>
             </div>
         """, unsafe_allow_html=True)
     
-    # Coluna 2: Suuas Atividades
+    # Coluna 2: Identidade
     with col2:
         current_time = get_timezone_offset()
         ambiente = "Produção" if os.getenv('RENDER') else "Local"
         
         st.markdown(f"""
-            <div style="background-color: #53a7a9; padding: 20px; border-radius: 8px;">
-                <p style="color: #ffffff; font-size: 24px; font-weight: bold;">Suas Atividades</p>
+            <div style="background-color: #53a7a9; padding: 20px; border-radius: 8px; height: 100%;">
+                <p style="color: #ffffff; font-size: 24px; font-weight: bold;">Identidade</p>
                 <div style="color: #ffffff; font-size: 16px;">
-                    <p>Data Atual: {current_time.strftime('%d/%m/%Y')}</p>
-                    <p>Hora Atual: {current_time.strftime('%H:%M:%S')}</p>
-                    <p>Ambiente: {ambiente}</p>
-                </div>
+                    <p>ID User: {st.session_state.get('user_id')}</p>
+                    <p>Nome: {st.session_state.get('user_name')}</p>
+                    <p>Empresa: {empresa}</p>
+                    <p>Perfil: {st.session_state.get('user_profile')}</p>
+                    </div>
             </div>
         """, unsafe_allow_html=True)
     
-    # Coluna 3: Módulos Disponíveis
+    # Coluna 3: Funções
     with col3:
         modulos_html = """
-            <div style="background-color: #8eb0ae; padding: 20px; border-radius: 8px;">
-                <p style="color: #ffffff; font-size: 24px; font-weight: bold;">Módulos Disponíveis</p>
+            <div style="background-color: #8eb0ae; padding: 20px; border-radius: 8px; height: 100%;">
+                <p style="color: #ffffff; font-size: 24px; font-weight: bold;">Funções</p>
                 <div style="color: #ffffff; font-size: 16px;">
-                    <p>Entrada de Dados - Perfil DISC</p>
-                    <p>Entrada de Dados - Comportamento DISC</p>                    
-                    <p>Simulações DISC</p>                    
+                    <p>Avaliação de Perfis</p>
+                    <p>Avaliação de Comportamento</p>                    
+                    <p>Análise DISC</p>                    
                 </div>
             </div>
         """
@@ -261,7 +258,7 @@ def zerar_value_element():
                     SET value_element = 0.0 
                     WHERE user_id = ? 
                     AND value_element IS NOT NULL
-                    AND type_element IN ('input', 'formula', 'formulaH')
+                    AND type_element IN ('input', 'formula', 'formulaH', 'selectbox')
                 """, (st.session_state["user_id"],))
                 
                 registros_afetados = cursor.rowcount
@@ -347,10 +344,10 @@ def main():
     # Mapeamento de páginas para suas funções de handler
     page_handlers = {
         "Bem-vindo": show_welcome,
-        "Avaliação de Perfis": lambda: process_forms_tab("perfil"),
-        "Avaliação de Comportamento": lambda: process_forms_tab("comportamento"),
-        "Avaliação Híbrida": lambda: process_forms_tab("hibrido"),
-        "do Perfil": lambda: show_results(tabela_escolhida="forms_resultados", titulo_pagina="Análise: Avaliação de Perfis", user_id=st.session_state.user_id),
+        "de Perfis": lambda: process_forms_tab("perfil"),
+        "de Comportamento": lambda: process_forms_tab("comportamento"),
+        "Resultados": lambda: process_forms_tab("resultado"),
+        "das Avaliações": lambda: show_results(tabela_escolhida="forms_resultados", titulo_pagina="Análise das Avaliações", user_id=st.session_state.user_id),
         "Info Tabelas (CRUD)": show_crud,
         "Monitor de Uso": show_monitor,
         "Diagnóstico": show_diagnostics,
@@ -360,13 +357,13 @@ def main():
     # Criando grupos de menu
     menu_groups = {
         "Abertura": ["Bem-vindo"],
-        "Avaliação Comportamental": [
-            "Avaliação de Perfis",
-            "Avaliação de Comportamento",
-            "Avaliação Híbrida"
+        "Avaliação": [
+            "de Perfis",
+            "de Comportamento",
+            "Resultados"
         ],
         "Análise": [
-            "do Perfil",
+            "das Avaliações",
         ],
         "Administração": []  # Iniciando vazio para adicionar itens na ordem correta
     }
@@ -389,14 +386,14 @@ def main():
     nav_cols = st.columns(2)
     with nav_cols[0]:
         selected_group = st.selectbox(
-            "Selecione o módulo:",
+            "Selecione a Função:",
             options=list(menu_groups.keys()),
             key="group_selection"
         )
     
     with nav_cols[1]:
         section = st.radio(
-            "Selecione a página:",
+            "Selecione o Módulo:",
             menu_groups[selected_group],
             key="menu_selection",
             horizontal=True
@@ -404,7 +401,6 @@ def main():
 
     # Verificar se houve mudança de página
     if st.session_state.get("previous_page") != section:
-        save_current_form_data()
         st.session_state["previous_page"] = section
 
     # Processa a seção selecionada usando o dicionário de handlers
@@ -412,7 +408,7 @@ def main():
     if handler:
         handler()
     else:
-        st.error("Página não encontrada.")
+        st.error("Módulo não encontrado.")
 
     # --- FOOTER ---
     st.markdown("<br>" * 1, unsafe_allow_html=True)
@@ -427,59 +423,6 @@ def main():
                 width=100, 
                 use_container_width=False
             )
-
-def save_current_form_data():
-    """Salva os dados do formulário atual quando houver mudança de página"""
-    if "form_data" in st.session_state and st.session_state["form_data"]:
-        with st.spinner('Salvando dados...'):
-            conn = sqlite3.connect(DB_PATH)
-            cursor = conn.cursor()
-            
-            previous_page = st.session_state.get("previous_page", "")
-            
-            if "Tipo do Café" in previous_page:
-                tipo_cafe = st.session_state.get("form_data", {}).get("tipo_cafe")
-                quantidade = st.session_state.get("form_data", {}).get("quantidade")
-                
-                if tipo_cafe and quantidade is not None:  # Verifica se os dados existem
-                    cursor.execute("""
-                        INSERT OR REPLACE INTO form_cafe 
-                        (user_id, data_input, tipo_cafe, quantidade)
-                        VALUES (?, datetime('now'), ?, ?)
-                    """, (
-                        st.session_state["user_id"],
-                        tipo_cafe,
-                        quantidade
-                    ))
-            
-            elif "Torrefação e Moagem" in previous_page:
-                cursor.execute("""
-                    INSERT OR REPLACE INTO form_moagem 
-                    (user_id, data_input, tipo_moagem, temperatura)
-                    VALUES (?, datetime('now'), ?, ?)
-                """, (
-                    st.session_state["user_id"],
-                    st.session_state.get("form_data", {}).get("tipo_moagem"),
-                    st.session_state.get("form_data", {}).get("temperatura")
-                ))
-            
-            elif "Embalagem" in previous_page:
-                cursor.execute("""
-                    INSERT OR REPLACE INTO form_embalagem 
-                    (user_id, data_input, tipo_embalagem, peso)
-                    VALUES (?, datetime('now'), ?, ?)
-                """, (
-                    st.session_state["user_id"],
-                    st.session_state.get("form_data", {}).get("tipo_embalagem"),
-                    st.session_state.get("form_data", {}).get("peso")
-                ))
-            
-            conn.commit()
-            conn.close()
-            # Limpar os dados do formulário após salvar
-            st.session_state["form_data"] = {}
-            time.sleep(0.5)  # Pequeno delay para feedback visual
-        st.success('Dados salvos com sucesso!')
 
 if __name__ == "__main__":
     main()
