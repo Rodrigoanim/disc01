@@ -2,7 +2,8 @@
 
 Este documento contém informações estruturadas sobre a metodologia DISC, extraídas do material de referência, para ser usado como contexto por um Large Language Model (LLM).
 
-## 1. Descrição dos Perfis Individuais (D, I, S, C)
+<Perfis_Individuais>
+## 1. Descrição dos Perfis Individuais
 
 ### Perfil D - Dominante
 
@@ -40,6 +41,9 @@ Este documento contém informações estruturadas sobre a metodologia DISC, extr
 - **Pontos Fortes:** Alta qualidade nas entregas, planejamento, organização, análise profunda, disciplina e atenção a detalhes.
 - **Limitações:** Perfeccionismo excessivo, podem ser excessivamente críticos, lentidão para decidir sem dados completos, dificuldade com ambiguidades e rigidez.
 
+</Perfis_Individuais>
+
+<Perfis_Combinados>
 
 ## 2. Descrição dos Perfis Combinados
 
@@ -64,6 +68,10 @@ Este documento contém informações estruturadas sobre a metodologia DISC, extr
 - **Desafios:** Tendência a evitar conflitos ou inovações, dificuldade em lidar com ambiguidades, podem ser lentos para decidir ou agir.
 
 *(Nota: As combinações I/D, S/I, C/S, C/D são variações com o perfil primário trocado, mas compartilham traços similares aos seus pares. Ex: I/D é um "Visionário Carismático" e S/I é um "Facilitador Empático".)*
+
+</Perfis_Combinados>
+
+<Excesso_Pontos_Fortes>
 
 
 ## 3. Excesso nos Pontos Fortes (Quando a Força Vira Fraqueza)
@@ -104,6 +112,10 @@ Este documento contém informações estruturadas sobre a metodologia DISC, extr
 | Cautela | Medo de errar / lentidão para agir |
 | Alto padrão de qualidade | Exigência inalcançável / autocobrança tóxica |
 
+</Excesso_Pontos_Fortes>
+
+
+<Caminhos_Aperfeiçoamento>
 
 ## 4. Caminhos de Aperfeiçoamento Sugeridos
 
@@ -134,3 +146,5 @@ Este documento contém informações estruturadas sobre a metodologia DISC, extr
 | Perfeccionismo | Procrastinação ou lentidão | Trabalhar o "feito é melhor que perfeito" |
 | Rigidez | Dificuldade de adaptação | Estimular pensamento flexível (mindset de crescimento) |
 | Medo de errar | Paralisação | Incentivar tomada de decisão progressiva e feedback seguro |
+
+<Caminhos_Aperfeiçoamento>
