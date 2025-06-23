@@ -1,6 +1,6 @@
 # Arquivo: form_model.py
 # type formula font attribute - somente inteiros
-# 12/06/2025 - 11:00 - alteração DISC
+# 22/06/2025 - 08:00 - ajuste função Formula
 
 import sqlite3
 import streamlit as st
@@ -12,6 +12,88 @@ from config import DB_PATH
 from paginas.monitor import registrar_acesso  # Ajustado para incluir o caminho completo
 
 MAX_COLUMNS = 5  # Número máximo de colunas no layout
+
+def format_brazilian_number(value):
+    """
+    Formata um número conforme padrões brasileiros.
+    
+    Args:
+        value (float): Valor numérico a ser formatado
+        
+    Returns:
+        str: Número formatado segundo as regras:
+            - Valores = 0: "0"
+            - Valores >= 1: sem casas decimais, separador de milhares com ponto
+            - Valores < 1: 3 casas decimais, vírgula como separador decimal
+    """
+    if value is None or value == 0:
+        return "0"
+    elif abs(value) >= 1:
+        return f"{value:,.0f}".replace(',', 'TEMP').replace('.', ',').replace('TEMP', '.')
+    else:
+        return f"{value:,.3f}".replace(',', 'TEMP').replace('.', ',').replace('TEMP', '.')
+
+def clean_quotes(text):
+    """
+    Remove aspas simples e duplas do início e fim de uma string.
+    
+    Args:
+        text (str): Texto a ser limpo
+        
+    Returns:
+        str: Texto sem aspas ou string vazia se text for None
+    """
+    if not text:
+        return ''
+    return text.strip('"').strip("'")
+
+def get_default_formula_style():
+    """
+    Retorna o estilo HTML padrão para elementos de fórmula.
+    
+    Returns:
+        str: HTML com estilo padrão
+    """
+    return '<div style="text-align: left; font-size: 16px; margin-bottom: 0;">[valor]</div>'
+
+def render_formula_result(result_value, msg, str_style):
+    """
+    Renderiza o resultado de uma fórmula no Streamlit com formatação.
+    
+    Args:
+        result_value (float): Valor calculado da fórmula
+        msg (str): Mensagem/título opcional
+        str_style (str): HTML de formatação com placeholder [valor]
+    """
+    try:
+        # Formata o resultado
+        result_br = format_brazilian_number(result_value)
+        
+        # Limpa aspas dos campos
+        clean_msg = clean_quotes(msg)
+        clean_style = clean_quotes(str_style)
+        
+        # Define estilo padrão se necessário
+        if not clean_style:
+            clean_style = get_default_formula_style()
+        
+        # Substitui placeholder pelo valor
+        formatted_html = clean_style.replace('[valor]', result_br)
+        
+        # Renderiza mensagem se existir
+        if clean_msg:
+            st.markdown(clean_msg, unsafe_allow_html=True)
+            st.empty()  # Pausa para sincronização do Streamlit
+        
+        # Renderiza o resultado formatado
+        formatted_html = formatted_html.strip()
+        st.markdown(formatted_html, unsafe_allow_html=True)
+        
+    except Exception as e:
+        st.error(f"Erro ao renderizar resultado da fórmula: {str(e)}")
+
+
+
 
 
 def date_to_days(date_str):
@@ -272,6 +354,7 @@ def condicaoH(cursor, element, conn):
 def titulo(cursor, element):
     """
     Exibe títulos formatados na interface com base nos valores do banco de dados.
+    Suporte ao placeholder [valor] no str_element que é substituído pelo msg_element.
     """
     try:
         name = element[0]
@@ -279,12 +362,20 @@ def titulo(cursor, element):
         msg = element[3].strip("'").strip('"')  # Remove aspas simples e duplas
         str_value = element[6].strip("'").strip('"') if element[6] else ''  # Remove aspas simples e duplas
         
-        # Se for do tipo 'titulo', usa o str_element do próprio registro
+        # Se for do tipo 'titulo'
         if type_elem == 'titulo':
             if str_value:
-                formatted_msg = str_value.replace('✅ Operação concluída com sucesso!', msg)
-                st.markdown(formatted_msg, unsafe_allow_html=True)
-                return
+                # Verifica se str_value contém o placeholder [valor]
+                if '[valor]' in str_value:
+                    # Substitui [valor] pelo conteúdo de msg_element
+                    formatted_msg = str_value.replace('[valor]', msg)
+                    st.markdown(formatted_msg, unsafe_allow_html=True)
+                    return
+                else:
+                    # Mantém compatibilidade com formato antigo
+                    formatted_msg = str_value.replace('✅ Operação concluída com sucesso!', msg)
+                    st.markdown(formatted_msg, unsafe_allow_html=True)
+                    return
         
         # Para os demais casos
         if str_value and not "Operação concluída" in str_value:
@@ -424,23 +515,6 @@ def process_forms_tab(section='perfil'):
                 st.markdown("<br>", unsafe_allow_html=True)
                 continue
             
-            # Caso especial: título verde ocupando toda a largura
-            if len(visible_elements) == 1 and visible_elements[0][1] == 'titulo':
-                element = visible_elements[0]
-                msg = element[3]
-                col_len = int(element[9]) if element[9] is not None else 1
-                
-                if 'background-color:#006400' in msg:
-                    # Cria colunas mantendo a proporção dentro do MAX_COLUMNS
-                    widths = [1] * max_cols  # Lista com 6 colunas de largura 1
-                    widths[0] = col_len  # Primeira coluna com largura col_len
-                    widths[col_len:] = [0] * (max_cols - col_len)  # Zera as colunas não usadas
-                    
-                    cols = st.columns(widths)
-                    with cols[0]:
-                        st.markdown(msg, unsafe_allow_html=True)
-                    continue
-            
             # Para os elementos normais
             # Calcula o total de colunas necessário baseado em col_len
             total_cols = 0
@@ -488,18 +562,16 @@ def process_forms_tab(section='perfil'):
                             titulo(cursor, element)
                             continue
 
-                        # Processa elementos ocultos
+                        # Processa elementos ocultos (condicaoH e call_insumosH)
                         if type_elem.endswith('H'):
                             try:
-                                if type_elem == 'formulaH':
-                                    result = calculate_formula(math_elem, st.session_state.form_values, cursor)
-                                elif type_elem == 'condicaoH':
+                                if type_elem == 'condicaoH':
                                     result = condicaoH(cursor, element, conn)
                                 elif type_elem == 'call_insumosH':
                                     result = call_insumos(cursor, element)
 
                                 # Atualiza o banco com o resultado
-                                if type_elem in ['formulaH', 'condicaoH', 'call_insumosH']:
+                                if type_elem in ['condicaoH', 'call_insumosH']:
                                     cursor.execute("""
                                         UPDATE forms_tab 
                                         SET value_element = ? 
@@ -656,53 +728,23 @@ def process_forms_tab(section='perfil'):
 
                         elif type_elem == 'formula':
                             try:
-                                # Calcula o resultado da fórmula
-                                result = calculate_formula(element[2], st.session_state.form_values, cursor)
+                                # 1. Calcula o resultado da fórmula
+                                result = calculate_formula(math_elem, st.session_state.form_values, cursor)
                                 
-                                # Formata o resultado segundo as regras especificadas
-                                if result is None or result == 0:
-                                    result_br = "0"
-                                elif abs(result) >= 1:
-                                    result_br = f"{result:,.0f}".replace(',', 'TEMP').replace('.', ',').replace('TEMP', '.')
-                                else:
-                                    result_br = f"{result:,.3f}".replace(',', 'TEMP').replace('.', ',').replace('TEMP', '.')
+                                # 2. Renderiza na interface SOMENTE se str_element não estiver vazio
+                                if str_value and str_value.strip():
+                                    render_formula_result(result, msg, str_value)
                                 
-                                # Limpa as aspas do str_value antes de usar
-                                str_value = element[6]
-                                if str_value:
-                                    str_value = str_value.strip('"').strip("'")  # Remove aspas simples e duplas
-                                
-                                # Limpa as aspas da mensagem também
-                                if msg:
-                                    msg = msg.strip('"').strip("'")
-                                
-                                # Se não houver estilo definido, usa o padrão
-                                if not str_value:
-                                    str_value = '<div style="text-align: left; font-size: 16px; margin-bottom: 0;">[valor]</div>'
-                                
-                                # Substitui o placeholder pelo valor calculado
-                                formatted_html = str_value.replace('[valor]', result_br)
-                                
-                                # Se houver mensagem de título
-                                if msg:
-                                    st.markdown(msg, unsafe_allow_html=True)
-                                    st.empty()
-                                
-                                # Limpa o HTML final e renderiza
-                                formatted_html = formatted_html.strip()
-                                st.markdown(formatted_html, unsafe_allow_html=True)
-                                
-                                # Atualiza o valor no banco (valor original, sem formatação)
+                                # 3. Atualiza o banco com UPDATE direto
                                 cursor.execute("""
                                     UPDATE forms_tab 
                                     SET value_element = ? 
                                     WHERE name_element = ? AND user_id = ?
                                 """, (result, name, st.session_state.user_id))
+                                conn.commit()
                                 
                             except Exception as e:
-                                st.error(f"Erro ao processar fórmula: {str(e)}")
-                                return 0.0
-
+                                st.error(f"Erro ao processar elemento de fórmula {name}: {str(e)}")
 
                         elif type_elem == 'input_data':
                             # Pega o valor atual do str_element
@@ -836,58 +878,4 @@ def call_insumos(cursor, element):
         st.error(f"Erro inesperado ao processar referência: {str(e)}")
         return 0.0
 
-def formula(cursor, element):
-    """
-    Exibe elementos do tipo 'formula' com estilos definidos no str_element.
-    
-    Esta função lida com o timing de renderização do Streamlit para garantir
-    que os estilos sejam aplicados corretamente. As pausas estratégicas (st.empty())
-    são necessárias devido à natureza assíncrona do Streamlit e como ele processa
-    elementos HTML.
-    
-    Parâmetros:
-        cursor: Cursor do banco de dados SQLite
-        element: Tupla contendo os dados do elemento (name, type, math, msg, etc.)
-    """
-    try:
-        name = element[0]
-        msg = element[3].strip("'").strip('"') if element[3] else ''
-        
-        # Limpa as aspas extras do str_element
-        str_value = element[6]
-        if str_value:
-            str_value = str_value.strip('"""').strip("'''").strip('"').strip("'")
-        
-        # Calcula o resultado da fórmula
-        result = calculate_formula(element[2], st.session_state.form_values, cursor)
-        result_br = f"{result:.2f}".replace('.', ',')
-        
-        # Se não houver estilo definido, usa o padrão
-        if not str_value:
-            str_value = '<div style="text-align: left; font-size: 16px; margin-bottom: 0;">[valor]</div>'
-        
-        # Garante que elementos anteriores foram renderizados
-        st.empty()
-        
-        # Substitui o placeholder pelo valor calculado
-        formatted_html = str_value.replace('[valor]', result_br)
-        
-        # Se houver mensagem de título
-        if msg:
-            st.markdown(msg, unsafe_allow_html=True)
-            st.empty()
-        
-        # Limpa o HTML final e renderiza
-        formatted_html = formatted_html.strip()
-        st.markdown(formatted_html, unsafe_allow_html=True)
-        
-        # Atualiza o valor no banco
-        cursor.execute("""
-            UPDATE forms_tab 
-            SET value_element = ? 
-            WHERE name_element = ? AND user_id = ?
-        """, (result, name, st.session_state.user_id))
-        
-    except Exception as e:
-        st.error(f"Erro ao processar fórmula: {str(e)}")
-        return 0.0
+

@@ -25,14 +25,14 @@ from paginas.resultados import show_results
 
 # Configuração da página - deve ser a primeira chamada do Streamlit
 st.set_page_config(
-    page_title="Assessment DISC",  # Título simplificado
+    page_title="Assessment DISC - v.1",  # Título simplificado
     page_icon="📊",
     layout="centered",
     menu_items={
         'About': """
         ### Sobre o Sistema - Assessment DISC
         
-        Versão: 3.0 - 06/06/2025
+        Versão: 1.0 - 17/06/2025
         
         Este sistema foi desenvolvido para realizar avaliações comportamentais 
         utilizando a metodologia DISC.

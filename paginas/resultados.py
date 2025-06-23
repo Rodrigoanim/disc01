@@ -1,5 +1,5 @@
 # resultados.py
-# Data: 13/05/2025 08:35
+# Data: 23/06/2025 14:35
 # Pagina de resultados - Dashboard
 # rotina das Simulações, tabelas: forms_resultados
 
@@ -29,20 +29,20 @@ import streamlit as st
 import sqlite3
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 from datetime import date
 import io
 import tempfile
 import matplotlib.pyplot as plt
 import traceback
 from paginas.monitor import registrar_acesso
-from paginas.form_model_recalc import verificar_dados_usuario, calculate_formula, atualizar_formulas
 import time
 
 from config import DB_PATH  # Adicione esta importação
 
 # Dicionário de títulos para cada tabela
 TITULOS_TABELAS = {
-    "forms_resultados": "Análise: Avaliação de Perfis",
+    "forms_resultados": "Análise: Avaliação DISC",
     "forms_result_sea": "Simulador da Pegada de Carbono"
 }
 
@@ -279,10 +279,18 @@ def grafico_barra(cursor, element):
             valor = result[0] if result and result[0] is not None else 0.0
             valores.append(valor)
         
-        # Define a cor das barras
-        cor = section if section else '#1f77b4'  # azul padrão se não houver cor definida
-        cores = [cor] * len(valores)  # aplica a mesma cor para todas as barras
+        # Define as cores fixas para cada posição DISC (D, I, S, C)
+        cores_disc = ['#B22222', '#DAA520', '#2E8B57', '#4682B4']
         
+        # Aplica as cores pela posição (ordem das barras)
+        cores = []
+        for i in range(len(labels)):
+            if i < len(cores_disc):
+                cores.append(cores_disc[i])
+            else:
+                cores.append('#1f77b4')  # cor padrão se houver mais de 4 barras
+        
+
         # Adiciona o título antes do gráfico usando markdown
         if msg:
             st.markdown(f"""
@@ -296,13 +304,15 @@ def grafico_barra(cursor, element):
                 '>{msg}</p>
             """, unsafe_allow_html=True)
         
-        # Cria o gráfico usando plotly express
-        fig = px.bar(
-            x=labels,
-            y=valores,
-            title=None,  # Remove título do plotly pois já usamos markdown
-            color_discrete_sequence=cores
-        )
+        # Cria o gráfico usando Graph Objects para controle total das cores
+        fig = go.Figure(data=[
+            go.Bar(
+                x=labels,
+                y=valores,
+                marker=dict(color=cores),  # Define cores diretamente
+                showlegend=False
+            )
+        ])
         
         # Configura o layout do gráfico
         fig.update_layout(
@@ -316,11 +326,11 @@ def grafico_barra(cursor, element):
             width=None,  # largura responsiva
             # Configuração do eixo X
             xaxis=dict(
-                tickfont=dict(size=16),  # aumentado em 30%
+                tickfont=dict(size=16),  # mantido tamanho original para web
             ),
             # Configuração do eixo Y
             yaxis=dict(
-                tickfont=dict(size=18),  # aumentado em 30%
+                tickfont=dict(size=18),  # mantido tamanho original para web
                 tickformat=",.",  # formato dos números
                 separatethousands=True  # separador de milhar
             ),
@@ -516,32 +526,42 @@ def gerar_dados_grafico(cursor, elemento, tabela_escolhida: str, height_pct=100,
             result = cursor.fetchone()
             valor = float(result[0]) if result and result[0] is not None else 0.0
             valores.append(valor)
-        cor = section if section else '#1f77b4'
-        cores = [cor] * len(valores)
+        # Define as cores fixas para cada posição DISC (D, I, S, C)
+        cores_disc = ['#B22222', '#DAA520', '#2E8B57', '#4682B4']
+        
+        # Aplica as cores pela posição (ordem das barras)
+        cores = []
+        for i in range(len(labels)):
+            if i < len(cores_disc):
+                cores.append(cores_disc[i])
+            else:
+                cores.append('#1f77b4')  # cor padrão se houver mais de 4 barras
         # Ajustar base_width para ocupar mais da largura da página A4
         base_width = 250
         base_height = 180
         # largura dos gráficos igual à tabela (usando width_pct)
         adj_width = int(base_width * 2.2 * 0.8 * (width_pct / 100)) + 20  # aumenta 20 na largura
         adj_height = int(base_height * (height_pct / 100)) - 25           # reduz 25 na altura
-        fig = px.bar(
-            x=labels,
-            y=valores,
-            title=None,
-            color_discrete_sequence=cores
-        )
+        fig = go.Figure(data=[
+            go.Bar(
+                x=labels,
+                y=valores,
+                marker=dict(color=cores),  # Define cores diretamente
+                showlegend=False
+            )
+        ])
         fig.update_layout(
             showlegend=False,
-            height=adj_height,
+            height=int(adj_height * 1.5),  # aumentado 50% na altura
             width=adj_width,
             margin=dict(t=30, b=50),
             xaxis=dict(
                 title=None,
-                tickfont=dict(size=16)  # aumentado em 30%
+                tickfont=dict(size=8)  # reduzido 50% (de 16 para 8)
             ),
             yaxis=dict(
                 title=None,
-                tickfont=dict(size=18),  # aumentado em 30%
+                tickfont=dict(size=9),  # reduzido 50% (de 18 para 9)
                 tickformat=",.",
                 separatethousands=True
             )
@@ -624,21 +644,15 @@ def subtitulo(titulo_pagina: str):
 
 def generate_pdf_content(cursor, user_id: int, tabela_escolhida: str):
     """
-    Função específica para gerar o conteúdo do PDF usando uma conexão dedicada
-    Novo layout: título, subtítulo, tabela centralizada, 4 gráficos em 2 linhas (2x2)
+    Função para gerar PDF com layout específico: 
+    Tabela Perfil → Gráfico Perfil → Tabela Comportamento → Gráfico Comportamento
     """
     try:
-        # Configurações de dimensões (em percentual)
-        TABLE_HEIGHT_PCT = 25
-        TABLE_WIDTH_PCT = 60
-        GRAPH_HEIGHT_PCT = 100
-        GRAPH_WIDTH_PCT = 100
-        base_width = 250  # largura individual de cada gráfico/tabela
-        base_height = 180 # altura individual de cada gráfico
-        table_width = base_width * 2.2 * 0.8  # reduz 20% da largura da tabela
-        table_height = base_height * (TABLE_HEIGHT_PCT / 100)
-        graph_width = table_width  # gráficos agora têm a mesma largura da tabela
-        graph_height = base_height
+        # Configurações de dimensões
+        base_width = 400  # largura base para tabelas e gráficos
+        base_height = 200 # altura base
+        table_width = base_width * 0.8  # largura da tabela
+        graph_width = base_width        # largura do gráfico
 
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(
@@ -655,6 +669,7 @@ def generate_pdf_content(cursor, user_id: int, tabela_escolhida: str):
             elements = []
             styles = getSampleStyleSheet()
 
+            # Estilos para o PDF
             title_style = ParagraphStyle(
                 'CustomTitle',
                 parent=styles['Heading1'],
@@ -664,22 +679,9 @@ def generate_pdf_content(cursor, user_id: int, tabela_escolhida: str):
                 fontName='Helvetica',
                 leading=26,
                 spaceBefore=15,
-                spaceAfter=20,
-                borderRadius=5,
-                backColor=colors.white,
-                borderPadding=10
+                spaceAfter=20
             )
-            subtitle_style = ParagraphStyle(
-                'CustomSubtitle',
-                parent=styles['Heading2'],
-                fontSize=20,
-                alignment=1,
-                textColor=colors.HexColor('#1E1E1E'),
-                fontName='Helvetica',
-                leading=24,
-                spaceBefore=10,
-                spaceAfter=15
-            )
+            
             table_style = TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e8f5e9')),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
@@ -689,20 +691,18 @@ def generate_pdf_content(cursor, user_id: int, tabela_escolhida: str):
                 ('FONTSIZE', (0, 0), (-1, 0), 14),
                 ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
                 ('FONTSIZE', (0, 1), (-1, -1), 12),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 16),  # cabeçalho
-                ('TOPPADDING', (0, 1), (-1, -1), 12),    # corpo
-                ('BOTTOMPADDING', (0, 1), (-1, -1), 12), # corpo
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 16),
+                ('TOPPADDING', (0, 1), (-1, -1), 12),
+                ('BOTTOMPADDING', (0, 1), (-1, -1), 12),
                 ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ('ROUNDEDCORNERS', [3, 3, 3, 3]),
                 ('BOX', (0, 0), (-1, -1), 2, colors.black),
                 ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f5f5f5')])
             ])
-
-            # Estilo para títulos dos gráficos (aumentado em 30%)
+            
             graphic_title_style = ParagraphStyle(
                 'GraphicTitle',
                 parent=styles['Heading2'],
-                fontSize=18,  # aumentado em 30%
+                fontSize=18,
                 alignment=1,
                 textColor=colors.HexColor('#1E1E1E'),
                 fontName='Helvetica',
@@ -711,14 +711,12 @@ def generate_pdf_content(cursor, user_id: int, tabela_escolhida: str):
                 spaceAfter=8
             )
 
-            titulo_principal = TITULOS_TABELAS.get(tabela_escolhida, "Análise")
-            subtitulo_principal = SUBTITULOS_TABELAS.get(tabela_escolhida, "Análises")
+            # Título principal
+            titulo_principal = TITULOS_TABELAS.get(tabela_escolhida, "Análise DISC")
             elements.append(Paragraph(titulo_principal, title_style))
-            elements.append(Spacer(1, 10))
-            elements.append(Paragraph(subtitulo_principal, subtitle_style))
             elements.append(Spacer(1, 20))
 
-            # Buscar elementos da tabela e gráficos
+            # Buscar todos os elementos (tabelas e gráficos)
             pdf_cursor.execute(f"""
                 SELECT name_element, type_element, math_element, msg_element,
                        value_element, select_element, str_element, e_col, e_row,
@@ -730,97 +728,75 @@ def generate_pdf_content(cursor, user_id: int, tabela_escolhida: str):
             """, (user_id,))
             elementos = pdf_cursor.fetchall()
 
-            # Pega a primeira tabela e até 4 gráficos
-            tabela = next((e for e in elementos if e[1] == 'tabela'), None)
-            graficos = [e for e in elementos if e[1] == 'grafico'][:4]
+            # Separar tabelas e gráficos
+            tabelas = [e for e in elementos if e[1] == 'tabela']
+            graficos = [e for e in elementos if e[1] == 'grafico']
 
-            # --- ORGANIZAÇÃO DAS PÁGINAS DO PDF ---
-            # Identificar os gráficos pelos títulos
-            graficos_dict = {}
-            for grafico in graficos:
-                # Por padrão, altura 160 (será ajustada por página)
-                dados_grafico = gerar_dados_grafico(pdf_cursor, grafico, tabela_escolhida, height_pct=160, width_pct=100)
-                if dados_grafico:
-                    graficos_dict[dados_grafico['title']] = Table(
-                        [[Paragraph(dados_grafico['title'], graphic_title_style)], [dados_grafico['image']]],
+            # Layout específico: Tabela Perfil → Gráfico Perfil → Tabela Comportamento → Gráfico Comportamento
+            
+            # 1. TABELA PERFIL (primeira tabela encontrada)
+            if len(tabelas) > 0:
+                tabela_perfil = tabelas[0]
+                dados_tabela_perfil = gerar_dados_tabela(pdf_cursor, tabela_perfil, height_pct=100, width_pct=100)
+                if dados_tabela_perfil:
+                    # Cria tabela com título "Resultados do Perfil"
+                    elements.append(Paragraph("Resultados do Perfil", graphic_title_style))
+                    elements.append(Spacer(1, 10))
+                    t = Table(dados_tabela_perfil['data'], colWidths=[table_width * 0.6, table_width * 0.4])
+                    t.setStyle(table_style)
+                    elements.append(Table([[t]], colWidths=[table_width], style=[('ALIGN', (0,0), (-1,-1), 'CENTER')]))
+                    elements.append(Spacer(1, 20))
+
+            # 2. GRÁFICO PERFIL (primeiro gráfico encontrado)
+            if len(graficos) > 0:
+                grafico_perfil = graficos[0]
+                dados_grafico_perfil = gerar_dados_grafico(pdf_cursor, grafico_perfil, tabela_escolhida, height_pct=100, width_pct=100)
+                if dados_grafico_perfil:
+                    # Usa o título do próprio gráfico ou padrão
+                    titulo_grafico = dados_grafico_perfil['title'] or "RESULTADOS DE PERFIS"
+                    elements.append(Paragraph(titulo_grafico, graphic_title_style))
+                    elements.append(Spacer(1, 10))
+                    elements.append(Table(
+                        [[dados_grafico_perfil['image']]],
                         colWidths=[graph_width],
                         style=[('ALIGN', (0,0), (-1,-1), 'CENTER')]
-                    )
+                    ))
+                    elements.append(Spacer(1, 30))
 
-            # --- DIFERENCIAÇÃO DE LAYOUT POR TABELA ---
-            if tabela_escolhida in ["forms_resultados", "forms_result_sea"]:
-                # Layout padrão: Tabela + gráficos
-                if tabela:
-                    dados_tabela = gerar_dados_tabela(pdf_cursor, tabela, height_pct=TABLE_HEIGHT_PCT, width_pct=TABLE_WIDTH_PCT)
-                    if dados_tabela:
-                        t = Table(dados_tabela['data'], colWidths=[table_width * 0.6, table_width * 0.4])
-                        t.setStyle(table_style)
-                        elements.append(Table([[t]], colWidths=[table_width], style=[('ALIGN', (0,0), (-1,-1), 'CENTER')]))
-                        for _ in range(5):
-                            elements.append(Spacer(1, 12))
-                # Gráfico Demanda de Água com altura reduzida em 25%
-                if 'Demanda de Água (m³/1000kg de café)' in graficos_dict:
-                    grafico_agua = next((g for g in graficos if 'Demanda de Água' in g[3]), None)
-                    if grafico_agua:
-                        dados_grafico_agua = gerar_dados_grafico(pdf_cursor, grafico_agua, tabela_escolhida, height_pct=120, width_pct=100)
-                        elements.append(Table(
-                            [[Paragraph(dados_grafico_agua['title'], graphic_title_style)], [dados_grafico_agua['image']]],
-                            colWidths=[graph_width],
-                            style=[('ALIGN', (0,0), (-1,-1), 'CENTER')]
-                        ))
-                elements.append(PageBreak())
-
-                # Página 2: Demanda de Água, Pegada de Carbono e Resíduos Sólidos (todos juntos, altura reduzida)
-                titulos_graficos_p2 = [
-                    'Demanda de Água (litros / 1000kg de café)',
-                    'Pegada de Carbono (kg CO2eq/1000 kg de café)'
-                ]
-                residuos_key = next((k for k in graficos_dict if 'resíduo' in k.lower()), None)
-                if residuos_key:
-                    titulos_graficos_p2.append(residuos_key)
-                for titulo in titulos_graficos_p2:
-                    grafico = next((g for g in graficos if titulo in g[3]), None)
-                    if grafico:
-                        dados_grafico = gerar_dados_grafico(pdf_cursor, grafico, tabela_escolhida, height_pct=120, width_pct=100)
-                        elements.append(Table(
-                            [[Paragraph(dados_grafico['title'], graphic_title_style)], [dados_grafico['image']]],
-                            colWidths=[graph_width],
-                            style=[('ALIGN', (0,0), (-1,-1), 'CENTER')]
-                        ))
-                        elements.append(Spacer(1, 10))
+            # 3. TABELA COMPORTAMENTO (segunda tabela ou cópia da primeira)
+            if len(tabelas) > 1:
+                tabela_comportamento = tabelas[1]
             else:
-                # Layout setorial: só gráficos, 2 por página
-                # Página 1: Demanda de Água
-                palavras_chave_p1 = ["água"]
-                graficos_p1 = []
-                for palavra in palavras_chave_p1:
-                    grafico = next((g for g in graficos if palavra in g[3].lower()), None)
-                    if grafico:
-                        dados_grafico = gerar_dados_grafico(pdf_cursor, grafico, tabela_escolhida, height_pct=120, width_pct=100)
-                        graficos_p1.append(Table(
-                            [[Paragraph(dados_grafico['title'], graphic_title_style)], [dados_grafico['image']]],
-                            colWidths=[graph_width],
-                            style=[('ALIGN', (0,0), (-1,-1), 'CENTER')]
-                        ))
-                        graficos_p1.append(Spacer(1, 10))
-                for g in graficos_p1:
-                    elements.append(g)
-                elements.append(PageBreak())
-                # Página 2: Pegada de Carbono e Resíduos Sólidos
-                palavras_chave_p2 = ["carbono", "resíduo"]
-                graficos_p2 = []
-                for palavra in palavras_chave_p2:
-                    grafico = next((g for g in graficos if palavra in g[3].lower()), None)
-                    if grafico:
-                        dados_grafico = gerar_dados_grafico(pdf_cursor, grafico, tabela_escolhida, height_pct=120, width_pct=100)
-                        graficos_p2.append(Table(
-                            [[Paragraph(dados_grafico['title'], graphic_title_style)], [dados_grafico['image']]],
-                            colWidths=[graph_width],
-                            style=[('ALIGN', (0,0), (-1,-1), 'CENTER')]
-                        ))
-                        graficos_p2.append(Spacer(1, 10))
-                for g in graficos_p2:
-                    elements.append(g)
+                tabela_comportamento = tabelas[0] if tabelas else None
+                
+            if tabela_comportamento:
+                dados_tabela_comportamento = gerar_dados_tabela(pdf_cursor, tabela_comportamento, height_pct=100, width_pct=100)
+                if dados_tabela_comportamento:
+                    # Cria tabela com título "Resultados do Comportamento"
+                    elements.append(Paragraph("Resultados do Comportamento", graphic_title_style))
+                    elements.append(Spacer(1, 10))
+                    t = Table(dados_tabela_comportamento['data'], colWidths=[table_width * 0.6, table_width * 0.4])
+                    t.setStyle(table_style)
+                    elements.append(Table([[t]], colWidths=[table_width], style=[('ALIGN', (0,0), (-1,-1), 'CENTER')]))
+                    elements.append(Spacer(1, 20))
+
+            # 4. GRÁFICO COMPORTAMENTO (segundo gráfico ou cópia do primeiro)
+            if len(graficos) > 1:
+                grafico_comportamento = graficos[1]
+            else:
+                grafico_comportamento = graficos[0] if graficos else None
+                
+            if grafico_comportamento:
+                dados_grafico_comportamento = gerar_dados_grafico(pdf_cursor, grafico_comportamento, tabela_escolhida, height_pct=100, width_pct=100)
+                if dados_grafico_comportamento:
+                    # Força o título para "RESULTADOS DE COMPORTAMENTO"
+                    elements.append(Paragraph("RESULTADOS DE COMPORTAMENTO", graphic_title_style))
+                    elements.append(Spacer(1, 10))
+                    elements.append(Table(
+                        [[dados_grafico_comportamento['image']]],
+                        colWidths=[graph_width],
+                        style=[('ALIGN', (0,0), (-1,-1), 'CENTER')]
+                    ))
 
             doc.build(elements)
             return buffer
@@ -858,19 +834,11 @@ def show_results(tabela_escolhida: str, titulo_pagina: str, user_id: int):
             st.error("Não foi possível conectar ao banco de dados. Tente novamente.")
             return
             
-        # 1. Verifica se usuário tem dados em forms_tab
-        verificar_dados_usuario(cursor, user_id)
-        
-        # 2. Atualiza todas as fórmulas e verifica o resultado
-        if not atualizar_formulas(cursor, user_id):
-            st.error("Erro ao atualizar fórmulas!")
-            return
-
-        # 3. Verifica/inicializa dados na tabela escolhida
+        # 1. Verifica/inicializa dados na tabela escolhida
         new_user(cursor, user_id, tabela_escolhida)
         conn.commit()
         
-        # 4. Registra acesso à página
+        # 2. Registra acesso à página
         registrar_acesso(
             user_id,
             "resultados",
