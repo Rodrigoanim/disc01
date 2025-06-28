@@ -941,10 +941,12 @@ def show_results(tabela_escolhida: str, titulo_pagina: str, user_id: int):
                                     call_dados(cursor, element, tabela_escolhida)
         
         # 5. Gerar e exibir a análise DISC
-        with st.expander("Clique aqui para ver sua Análise de Perfil DISC Completa", expanded=False):
+        with st.expander("Clique aqui para ver sua Análise DISC de PERFIL", expanded=False):
             st.markdown("---")
-            analise_texto = analisar_perfil_disc(cursor, user_id)
-            st.markdown(analise_texto, unsafe_allow_html=True)
+            
+            # Chama a função que gera e exibe a análise diretamente
+            analisar_perfil_disc_streamlit(cursor, user_id)
+            
             st.markdown("---")
 
     except Exception as e:
@@ -1030,11 +1032,337 @@ def tabela_dados_sem_titulo(cursor, element):
     except Exception as e:
         st.error(f"Erro ao criar tabela: {str(e)}")
 
+def analisar_perfil_disc_streamlit(cursor, user_id):
+    """
+    Realiza uma análise completa do perfil DISC do usuário usando diretamente o Streamlit.
+    Dividida em 2 blocos:
+    1. Análise do Perfil - características, pontos fortes e limitações
+    2. Análise do Comportamento - manifestações práticas e desenvolvimento
+    """
+    try:
+        # 1. Buscar dados do usuário primeiro
+        cursor.execute("""
+            SELECT u.nome, u.email, u.empresa 
+            FROM usuarios u 
+            WHERE u.user_id = ?
+        """, (user_id,))
+        usuario_info = cursor.fetchone()
+        
+        # 2. Encontrar o gráfico de resultados DISC - busca mais ampla
+        tabela = st.session_state.tabela_escolhida
+        
+        # Primeiro tenta buscar por diferentes títulos possíveis
+        titulos_busca = [
+            '%RESULTADOS DE PERFIS%',
+            '%PESQUISA COMPORTAMENTAL%', 
+            '%COMPORTAMENTAL%',
+            '%PERFIL%',
+            '%DISC%'
+        ]
+        
+        result = None
+        titulo_grafico_usado = ""
+        for titulo in titulos_busca:
+            cursor.execute(f"""
+                SELECT select_element, str_element, msg_element
+                FROM {tabela}
+                WHERE user_id = ? AND type_element = 'grafico' AND msg_element LIKE ?
+                LIMIT 1
+            """, (user_id, titulo))
+            result = cursor.fetchone()
+            if result and result[0] and result[1]:
+                titulo_grafico_usado = titulo
+                break
+        
+        # Se não encontrou por título, busca qualquer gráfico com 4 elementos (D,I,S,C)
+        if not result or not result[0] or not result[1]:
+            cursor.execute(f"""
+                SELECT select_element, str_element, msg_element
+                FROM {tabela}
+                WHERE user_id = ? AND type_element = 'grafico'
+                AND select_element IS NOT NULL 
+                AND str_element IS NOT NULL
+                AND LENGTH(select_element) - LENGTH(REPLACE(select_element, '|', '')) = 3
+                LIMIT 1
+            """, (user_id,))
+            result = cursor.fetchone()
+            titulo_grafico_usado = "Gráfico com 4 elementos encontrado"
+        
+        if not result or not result[0] or not result[1]:
+            # Se ainda não encontrou, busca todos os elementos disponíveis para debug
+            cursor.execute(f"""
+                SELECT name_element, value_element, msg_element
+                FROM {tabela}
+                WHERE user_id = ? AND value_element IS NOT NULL
+                ORDER BY name_element
+                LIMIT 10
+            """, (user_id,))
+            elementos_debug = cursor.fetchall()
+            
+            debug_info = "<br>".join([f"- {elem[0]}: {elem[1]} ({elem[2] or 'sem título'})" for elem in elementos_debug])
+            
+            st.markdown("## ⚠️ Análise DISC não disponível")
+            st.markdown("### 👤 Informações do Usuário:")
+            if usuario_info:
+                st.markdown(f"**Nome:** {usuario_info[0] or 'Não informado'}")
+                st.markdown(f"**Email:** {usuario_info[1] or 'Não informado'}")
+                st.markdown(f"**Empresa:** {usuario_info[2] or 'Não informado'}")
+            
+            st.markdown("### 📊 Problema encontrado:")
+            st.markdown(f"Não foi possível localizar o gráfico DISC na tabela `{tabela}` para o usuário {user_id}.")
+            
+            st.markdown("### 🔍 Elementos encontrados na tabela:")
+            if debug_info:
+                st.markdown(debug_info, unsafe_allow_html=True)
+            else:
+                st.markdown("Nenhum elemento encontrado")
+            
+            st.markdown("**Solução:** Verifique se os dados DISC foram calculados corretamente ou se a configuração do gráfico está presente na tabela.")
+            return
+
+        name_elements = [name.strip() for name in result[0].split('|')]
+        labels = [label.strip() for label in result[1].split('|')]
+        titulo_grafico = result[2] if result[2] else "Gráfico DISC"
+        
+        # Cria mapeamento baseado nos rótulos DISC
+        profile_map = {}
+        for name, label in zip(name_elements, labels):
+            # Procura pela letra DISC nos parênteses primeiro
+            if '(' in label and ')' in label:
+                letra_parenteses = label[label.find('(')+1:label.find(')')].upper()
+                if letra_parenteses in ['D', 'I', 'S', 'C']:
+                    profile_map[name] = letra_parenteses
+            else:
+                # Fallback: primeira letra do label
+                first_letter = label[0].upper() if label else ''
+                if first_letter in ['D', 'I', 'S', 'C']:
+                    profile_map[name] = first_letter
+
+
+
+        # 3. Obter os valores DISC do usuário
+        placeholders = ','.join('?' for _ in name_elements)
+        cursor.execute(f"""
+            SELECT name_element, value_element
+            FROM {tabela}
+            WHERE user_id = ? AND name_element IN ({placeholders})
+        """, (user_id, *name_elements))
+        resultados_disc_raw = cursor.fetchall()
+        
+        if not resultados_disc_raw:
+            st.markdown("## ⚠️ Dados DISC não encontrados")
+            st.markdown("### 👤 Informações do Usuário:")
+            if usuario_info:
+                st.markdown(f"**Nome:** {usuario_info[0] or 'Não informado'}")
+                st.markdown(f"**Email:** {usuario_info[1] or 'Não informado'}")
+                st.markdown(f"**Empresa:** {usuario_info[2] or 'Não informado'}")
+            
+            st.markdown("### 📊 Problema:")
+            st.markdown(f"Encontrado gráfico '{titulo_grafico}' mas não há valores calculados para os elementos: {', '.join(name_elements)}")
+            st.markdown("**Solução:** Complete a avaliação DISC para gerar os resultados.")
+            return
+
+        perfil = {profile_map.get(name, name): float(value if value is not None else 0.0) for name, value in resultados_disc_raw}
+        perfil = {k: v for k, v in perfil.items() if k}  # Remove chaves vazias
+
+        if len(perfil) < 2:
+            st.markdown("## ⚠️ Dados DISC insuficientes")
+            st.markdown("### 👤 Informações do Usuário:")
+            if usuario_info:
+                st.markdown(f"**Nome:** {usuario_info[0] or 'Não informado'}")
+                st.markdown(f"**Email:** {usuario_info[1] or 'Não informado'}")
+                st.markdown(f"**Empresa:** {usuario_info[2] or 'Não informado'}")
+            
+            st.markdown("### 📊 Dados encontrados:")
+            st.markdown(', '.join([f'{k}: {v}' for k, v in perfil.items()]))
+            st.markdown(f"**Problema:** Apenas {len(perfil)} perfis encontrados. Necessário pelo menos 2 para análise.")
+            return
+
+        # 4. Ler e parsear a base de conhecimento
+        try:
+            with open('base_conhecimento_disc.md', 'r', encoding='utf-8') as f:
+                base_conhecimento = f.read()
+        except FileNotFoundError:
+            st.error("Arquivo 'base_conhecimento_disc.md' não encontrado.")
+            st.markdown("Análise não disponível: arquivo de conhecimento ausente.")
+            return
+
+        secoes = {}
+        tags = {
+            "individuais": ("<Perfis_Individuais>", "</Perfis_Individuais>"),
+            "combinados": ("<Perfis_Combinados>", "</Perfis_Combinados>"),
+            "excesso": ("<Excesso_Pontos_Fortes>", "</Excesso_Pontos_Fortes>"),
+            "aperfeicoamento": ("<Caminhos_Aperfeiçoamento>", "</Caminhos_Aperfeiçoamento>")
+        }
+        for nome, (inicio_tag, fim_tag) in tags.items():
+            inicio = base_conhecimento.find(inicio_tag)
+            fim = base_conhecimento.find(fim_tag, inicio)
+            if inicio != -1 and fim != -1:
+                secoes[nome] = base_conhecimento[inicio + len(inicio_tag):fim].strip()
+            else:
+                secoes[nome] = ""
+
+        # 5. Definir perfis primário e secundário
+        perfil_ordenado = sorted(perfil.items(), key=lambda item: item[1], reverse=True)
+        perfil_primario, valor_primario = perfil_ordenado[0]
+        perfil_secundario, valor_secundario = perfil_ordenado[1] if len(perfil_ordenado) > 1 else ('', 0)
+
+        # ===== INÍCIO DA EXIBIÇÃO DA ANÁLISE =====
+        
+        # CABEÇALHO PRINCIPAL
+        st.markdown("## 📊 Análise Comportamental DISC")
+        
+        # DADOS DO USUÁRIO
+        st.markdown("### 👤 Informações do Participante")
+        if usuario_info:
+            info_html = f"""
+            <div style='background-color: #f0f8ff; padding: 15px; margin: 15px 0; border-radius: 8px; border-left: 4px solid #0066cc;'>
+                <p style='margin: 0; font-size: 16px;'>
+                    <strong>👤 Nome:</strong> {usuario_info[0] or 'Não informado'}<br>
+                    <strong>📧 Email:</strong> {usuario_info[1] or 'Não informado'}<br>
+                    <strong>🏢 Empresa:</strong> {usuario_info[2] or 'Não informado'}
+                </p>
+            </div>
+            """
+            st.markdown(info_html, unsafe_allow_html=True)
+        
+        # DADOS DA AVALIAÇÃO
+        st.markdown("### 📈 Resultados da sua Avaliação DISC")
+        st.markdown(f"*Baseado no gráfico: {titulo_grafico}* | *Busca: {titulo_grafico_usado}*")
+        
+        # Criar tabela com os resultados DISC
+        nomes_perfis = {'D': 'Dominante', 'I': 'Influente', 'S': 'Estável', 'C': 'Conforme'}
+        
+        # Criar usando o Streamlit dataframe para garantir a renderização
+        import pandas as pd
+        
+        # Preparar dados para a tabela
+        dados_tabela = []
+        for i, (letra, valor) in enumerate(perfil_ordenado):
+            if i == 0:
+                posicao = "1º - Primário"
+            elif i == 1:
+                posicao = "2º - Secundário"
+            else:
+                posicao = f"{i+1}º"
+                
+            nome_completo = nomes_perfis.get(letra, letra)
+            # Corrigir valores que podem estar multiplicados (40000 -> 40)
+            valor_corrigido = valor / 1000 if valor >= 1000 else valor
+            
+            dados_tabela.append({
+                'Perfil DISC': f"{letra} - {nome_completo}",
+                'Pontuação': f"{valor_corrigido:.0f}",
+                'Posição': posicao
+            })
+        
+        # Criar DataFrame e exibir de forma mais simples
+        df_disc = pd.DataFrame(dados_tabela)
+        
+        # Criar colunas para centralizar a tabela
+        col1, col2, col3 = st.columns([1, 4, 1])
+        
+        with col2:
+            st.dataframe(
+                df_disc,
+                use_container_width=True,
+                hide_index=True
+            )
+        
+        # Resumo do perfil identificado
+        valor_primario_corrigido = valor_primario / 1000 if valor_primario >= 1000 else valor_primario
+        valor_secundario_corrigido = valor_secundario / 1000 if valor_secundario >= 1000 else valor_secundario
+        
+        resumo_html = f"""
+        <div style='background-color: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 10px; border-left: 5px solid #007bff;'>
+            <h4 style='color: #007bff; margin: 0 0 10px 0;'>🎯 Seu Perfil Identificado</h4>
+            <p style='font-size: 18px; margin: 0; color: #495057;'>
+                <strong>Perfil Principal:</strong> {perfil_primario} - {nomes_perfis.get(perfil_primario, perfil_primario)} ({valor_primario_corrigido:.0f} pontos)<br>
+                {f"<strong>Perfil Secundário:</strong> {perfil_secundario} - {nomes_perfis.get(perfil_secundario, perfil_secundario)} ({valor_secundario_corrigido:.0f} pontos)<br>" if perfil_secundario else ""}
+                <strong>Combinação:</strong> {perfil_primario}{f"/{perfil_secundario}" if perfil_secundario else ""}
+            </p>
+        </div>
+        """
+        
+        st.markdown(resumo_html, unsafe_allow_html=True)
+        
+        st.markdown("---")
+        
+        # ===== BLOCO 1: ANÁLISE DO PERFIL =====
+        st.markdown("## 🔍 BLOCO 1 - Análise do Perfil")
+        
+        # Helper para extrair conteúdo
+        def extrair_conteudo(secao_texto, chaves_busca):
+            for chave in chaves_busca:
+                inicio = secao_texto.find(chave)
+                if inicio != -1:
+                    fim = secao_texto.find('###', inicio + len(chave))
+                    conteudo_bloco = secao_texto[inicio:fim if fim != -1 else len(secao_texto)].strip()
+                    return conteudo_bloco.split('\n', 1)[1].strip() if '\n' in conteudo_bloco else ""
+            return ""
+        
+        # Perfil Combinado
+        if perfil_secundario:
+            chaves_combinado = [f"### {perfil_primario}/{perfil_secundario} -", f"### {perfil_secundario}/{perfil_primario} -"]
+            desc_combinado = extrair_conteudo(secoes.get("combinados", ""), chaves_combinado)
+
+            if desc_combinado:
+                st.markdown(f"### 🤝 Perfil Combinado: {perfil_primario}/{perfil_secundario}")
+                st.markdown(desc_combinado)
+        
+        # Perfil Individual
+        conteudo_individual_raw = extrair_conteudo(secoes.get("individuais", ""), [f"### Perfil {perfil_primario} -"])
+        
+        if conteudo_individual_raw:
+            # Extrair descrição principal
+            inicio_fortes = conteudo_individual_raw.find('- **Pontos Fortes:**')
+            desc_individual = conteudo_individual_raw[:inicio_fortes if inicio_fortes != -1 else len(conteudo_individual_raw)].strip()
+            
+            st.markdown(f"### 👤 Características do seu Perfil Principal: {perfil_primario}")
+            st.markdown(desc_individual)
+            
+            # Extrair pontos fortes
+            if inicio_fortes != -1:
+                inicio_limit = conteudo_individual_raw.find('- **Limitações:**', inicio_fortes)
+                fortes_raw = conteudo_individual_raw[inicio_fortes:inicio_limit if inicio_limit != -1 else len(conteudo_individual_raw)]
+                fortes_raw = fortes_raw.replace('- **Pontos Fortes:**', '').strip()
+                
+                if fortes_raw:
+                    st.markdown(f"#### ✅ Pontos Fortes ({perfil_primario})")
+                    fortes_lista = [item.strip() for item in fortes_raw.split(',') if item.strip()]
+                    for forte in fortes_lista:
+                        st.markdown(f"- {forte}")
+
+            # Extrair limitações
+            if inicio_limit != -1:
+                limitacoes_raw = conteudo_individual_raw[inicio_limit:].replace('- **Limitações:**', '').strip()
+                
+                if limitacoes_raw:
+                    st.markdown(f"#### ⚠️ Limitações a observar ({perfil_primario})")
+                    limitacoes_lista = [item.strip() for item in limitacoes_raw.split(',') if item.strip()]
+                    for limitacao in limitacoes_lista:
+                        st.markdown(f"- {limitacao}")
+        
+        st.markdown("---")
+        
+        # ===== BLOCO 2: ANÁLISE DO COMPORTAMENTO =====
+        st.markdown("## 🎭 BLOCO 2 - Análise do Comportamento")
+        st.markdown("*Esta seção será desenvolvida na próxima etapa...*")
+        
+        # Observação final
+        if not conteudo_individual_raw and not (perfil_secundario and desc_combinado):
+            st.warning("⚠️ **Observação:** Algumas seções da análise podem estar incompletas devido à estrutura do arquivo de conhecimento.")
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        st.error(f"Ocorreu um erro inesperado ao gerar a análise DISC: {str(e)}")
+
 def analisar_perfil_disc(cursor, user_id):
     """
-    Realiza uma análise completa do perfil DISC do usuário, buscando dinamicamente
-    os dados a partir da configuração do gráfico de resultados e de um arquivo .md
-    estruturado com tags.
+    Realiza uma análise completa do perfil DISC do usuário dividida em 2 blocos:
+    1. Análise do Perfil - características, pontos fortes e limitações
+    2. Análise do Comportamento - manifestações práticas e desenvolvimento
 
     A base de conhecimento deve ser estruturada com as seguintes tags:
     - <Perfis_Individuais>...</Perfis_Individuais>
@@ -1050,23 +1378,110 @@ def analisar_perfil_disc(cursor, user_id):
         str: Uma string formatada em Markdown com a análise completa.
     """
     try:
-        # 1. Encontrar o gráfico de resultados DISC para obter os name_elements corretos
-        tabela = st.session_state.tabela_escolhida
-        cursor.execute(f"""
-            SELECT select_element, str_element
-            FROM {tabela}
-            WHERE user_id = ? AND type_element = 'grafico' AND msg_element LIKE '%PESQUISA COMPORTAMENTAL%'
-            LIMIT 1
+        # 1. Buscar dados do usuário primeiro
+        cursor.execute("""
+            SELECT u.nome, u.email, u.empresa 
+            FROM usuarios u 
+            WHERE u.user_id = ?
         """, (user_id,))
-        result = cursor.fetchone()
+        usuario_info = cursor.fetchone()
+        
+        # 2. Encontrar o gráfico de resultados DISC - busca mais ampla
+        tabela = st.session_state.tabela_escolhida
+        
+        # Primeiro tenta buscar por diferentes títulos possíveis
+        titulos_busca = [
+            '%RESULTADOS DE PERFIS%',
+            '%PESQUISA COMPORTAMENTAL%', 
+            '%COMPORTAMENTAL%',
+            '%PERFIL%',
+            '%DISC%'
+        ]
+        
+        result = None
+        titulo_grafico_usado = ""
+        for titulo in titulos_busca:
+            cursor.execute(f"""
+                SELECT select_element, str_element, msg_element
+                FROM {tabela}
+                WHERE user_id = ? AND type_element = 'grafico' AND msg_element LIKE ?
+                LIMIT 1
+            """, (user_id, titulo))
+            result = cursor.fetchone()
+            if result and result[0] and result[1]:
+                titulo_grafico_usado = titulo
+                break
+        
+        # Se não encontrou por título, busca qualquer gráfico com 4 elementos (D,I,S,C)
         if not result or not result[0] or not result[1]:
-            return "Análise não disponível: A configuração do gráfico 'PESQUISA COMPORTAMENTAL' não foi encontrada."
+            cursor.execute(f"""
+                SELECT select_element, str_element, msg_element
+                FROM {tabela}
+                WHERE user_id = ? AND type_element = 'grafico'
+                AND select_element IS NOT NULL 
+                AND str_element IS NOT NULL
+                AND LENGTH(select_element) - LENGTH(REPLACE(select_element, '|', '')) = 3
+                LIMIT 1
+            """, (user_id,))
+            result = cursor.fetchone()
+            titulo_grafico_usado = "Gráfico com 4 elementos encontrado"
+        
+        if not result or not result[0] or not result[1]:
+            # Se ainda não encontrou, busca todos os elementos disponíveis para debug
+            cursor.execute(f"""
+                SELECT name_element, value_element, msg_element
+                FROM {tabela}
+                WHERE user_id = ? AND value_element IS NOT NULL
+                ORDER BY name_element
+                LIMIT 10
+            """, (user_id,))
+            elementos_debug = cursor.fetchall()
+            
+            debug_info = "<br>".join([f"- {elem[0]}: {elem[1]} ({elem[2] or 'sem título'})" for elem in elementos_debug])
+            
+            return f"""
+            ## ⚠️ Análise DISC não disponível
+            
+            ### 👤 Informações do Usuário:
+            **Nome:** {usuario_info[0] if usuario_info and usuario_info[0] else 'Não informado'}<br>
+            **Email:** {usuario_info[1] if usuario_info and usuario_info[1] else 'Não informado'}<br>
+            **Empresa:** {usuario_info[2] if usuario_info and usuario_info[2] else 'Não informado'}
+            
+            ### 📊 Problema encontrado:
+            Não foi possível localizar o gráfico DISC na tabela `{tabela}` para o usuário {user_id}.
+            
+            ### 🔍 Elementos encontrados na tabela:
+            {debug_info if debug_info else "Nenhum elemento encontrado"}
+            
+            **Solução:** Verifique se os dados DISC foram calculados corretamente ou se a configuração do gráfico está presente na tabela `{tabela}`.
+            """
 
         name_elements = [name.strip() for name in result[0].split('|')]
         labels = [label.strip() for label in result[1].split('|')]
-        profile_map = {name: label[0].upper() for name, label in zip(name_elements, labels)}
+        titulo_grafico = result[2] if result[2] else "Gráfico DISC"
+        
+        # Cria mapeamento baseado nos rótulos DISC
+        profile_map = {}
+        for name, label in zip(name_elements, labels):
+            # Procura pela letra DISC nos parênteses primeiro
+            if '(' in label and ')' in label:
+                letra_parenteses = label[label.find('(')+1:label.find(')')].upper()
+                if letra_parenteses in ['D', 'I', 'S', 'C']:
+                    profile_map[name] = letra_parenteses
+            else:
+                # Fallback: primeira letra do label
+                first_letter = label[0].upper() if label else ''
+                if first_letter in ['D', 'I', 'S', 'C']:
+                    profile_map[name] = first_letter
 
-        # 2. Obter os valores DISC do usuário
+        # Debug temporário: Vamos ver o mapeamento atual
+        st.write("🔍 **Debug - Mapeamento encontrado:**")
+        st.write(f"name_elements: {name_elements}")
+        st.write(f"labels: {labels}")
+        st.write(f"profile_map: {profile_map}")
+        st.write("---")
+
+        # 3. Obter os valores DISC do usuário
         placeholders = ','.join('?' for _ in name_elements)
         cursor.execute(f"""
             SELECT name_element, value_element
@@ -1074,15 +1489,41 @@ def analisar_perfil_disc(cursor, user_id):
             WHERE user_id = ? AND name_element IN ({placeholders})
         """, (user_id, *name_elements))
         resultados_disc_raw = cursor.fetchall()
+        
         if not resultados_disc_raw:
-            return "Não foram encontrados resultados DISC para este usuário."
+            return f"""
+            ## ⚠️ Dados DISC não encontrados
+            
+            ### 👤 Informações do Usuário:
+            **Nome:** {usuario_info[0] if usuario_info and usuario_info[0] else 'Não informado'}<br>
+            **Email:** {usuario_info[1] if usuario_info and usuario_info[1] else 'Não informado'}<br>
+            **Empresa:** {usuario_info[2] if usuario_info and usuario_info[2] else 'Não informado'}
+            
+            ### 📊 Problema:
+            Encontrado gráfico "{titulo_grafico}" mas não há valores calculados para os elementos: {', '.join(name_elements)}
+            
+            **Solução:** Complete a avaliação DISC para gerar os resultados.
+            """
 
-        perfil = {profile_map.get(name, ''): float(value if value is not None else 0.0) for name, value in resultados_disc_raw}
-        perfil = {k: v for k, v in perfil.items() if k} # Remove chaves vazias se houver
-        if len(perfil) < 4:
-            return "Dados para a análise DISC estão incompletos."
+        perfil = {profile_map.get(name, name): float(value if value is not None else 0.0) for name, value in resultados_disc_raw}
+        perfil = {k: v for k, v in perfil.items() if k}  # Remove chaves vazias
 
-        # 3. Ler e parsear a base de conhecimento
+        if len(perfil) < 2:
+            return f"""
+            ## ⚠️ Dados DISC insuficientes
+            
+            ### 👤 Informações do Usuário:
+            **Nome:** {usuario_info[0] if usuario_info and usuario_info[0] else 'Não informado'}<br>
+            **Email:** {usuario_info[1] if usuario_info and usuario_info[1] else 'Não informado'}<br>
+            **Empresa:** {usuario_info[2] if usuario_info and usuario_info[2] else 'Não informado'}
+            
+            ### 📊 Dados encontrados:
+            {', '.join([f'{k}: {v}' for k, v in perfil.items()])}
+            
+            **Problema:** Apenas {len(perfil)} perfis encontrados. Necessário pelo menos 2 para análise.
+            """
+
+        # 4. Ler e parsear a base de conhecimento
         try:
             with open('base_conhecimento_disc.md', 'r', encoding='utf-8') as f:
                 base_conhecimento = f.read()
@@ -1105,12 +1546,12 @@ def analisar_perfil_disc(cursor, user_id):
             else:
                 secoes[nome] = ""
 
-        # 4. Definir perfis primário e secundário
+        # 5. Definir perfis primário e secundário
         perfil_ordenado = sorted(perfil.items(), key=lambda item: item[1], reverse=True)
-        perfil_primario, _ = perfil_ordenado[0]
-        perfil_secundario, _ = perfil_ordenado[1]
+        perfil_primario, valor_primario = perfil_ordenado[0]
+        perfil_secundario, valor_secundario = perfil_ordenado[1] if len(perfil_ordenado) > 1 else ('', 0)
 
-        # 5. Helper para extrair conteúdo
+        # 6. Helper para extrair conteúdo
         def extrair_conteudo(secao_texto, chaves_busca):
             for chave in chaves_busca:
                 inicio = secao_texto.find(chave)
@@ -1159,61 +1600,152 @@ def analisar_perfil_disc(cursor, user_id):
             html += "</tbody></table></div>"
             return html
 
-        # 6. Extrair todas as partes da análise
+        # ===== INÍCIO DA MONTAGEM DA ANÁLISE =====
+        
+        # CABEÇALHO PRINCIPAL
+        analise = f"## 📊 Análise Comportamental DISC\n\n"
+        
+        # DADOS DO USUÁRIO
+        analise += f"### 👤 Informações do Participante\n\n"
+        if usuario_info:
+            analise += f"""
+            <div style='background-color: #f0f8ff; padding: 15px; margin: 15px 0; border-radius: 8px; border-left: 4px solid #0066cc;'>
+                <p style='margin: 0; font-size: 16px;'>
+                    <strong>👤 Nome:</strong> {usuario_info[0] or 'Não informado'}<br>
+                    <strong>📧 Email:</strong> {usuario_info[1] or 'Não informado'}<br>
+                    <strong>🏢 Empresa:</strong> {usuario_info[2] or 'Não informado'}
+                </p>
+            </div>
+            """
+        
+        # DADOS DA AVALIAÇÃO - Tabela com pontuações
+        analise += f"### 📈 Resultados da sua Avaliação DISC\n\n"
+        analise += f"*Baseado no gráfico: {titulo_grafico}* | *Busca: {titulo_grafico_usado}*\n\n"
+        
+        # Criar tabela HTML com os resultados
+        dados_avaliacao = f"""
+        <div style='font-size: 16px; width: 90%; margin: 20px auto;'>
+            <table style='width: 100%; border-collapse: separate; border-spacing: 0; border-radius: 10px; overflow: hidden; box-shadow: 0 0 8px rgba(0,0,0,0.1);'>
+                <thead>
+                    <tr style='background-color: #e3f2fd;'>
+                        <th style='text-align: center; padding: 12px; border-bottom: 2px solid #1976d2; color: #1976d2; font-weight: bold;'>Perfil DISC</th>
+                        <th style='text-align: center; padding: 12px; border-bottom: 2px solid #1976d2; color: #1976d2; font-weight: bold;'>Pontuação</th>
+                        <th style='text-align: center; padding: 12px; border-bottom: 2px solid #1976d2; color: #1976d2; font-weight: bold;'>Posição</th>
+                    </tr>
+                </thead>
+                <tbody>
+        """
+        
+        # Adicionar linhas da tabela ordenadas por pontuação
+        nomes_perfis = {'D': 'Dominante', 'I': 'Influente', 'S': 'Estável', 'C': 'Conforme'}
+        for i, (letra, valor) in enumerate(perfil_ordenado):
+            if i == 0:
+                destaque = "background-color: #fff3e0; font-weight: bold; color: #f57c00;"
+                posicao = "1º - Primário"
+            elif i == 1:
+                destaque = "background-color: #f3e5f5; font-weight: bold; color: #7b1fa2;"
+                posicao = "2º - Secundário"
+            else:
+                destaque = "background-color: #f5f5f5;"
+                posicao = f"{i+1}º"
+            
+            nome_completo = nomes_perfis.get(letra, letra)
+            
+            dados_avaliacao += f"""
+                    <tr style='{destaque}'>
+                        <td style='text-align: center; padding: 10px 12px; border-bottom: 1px solid #dee2e6;'>{letra} - {nome_completo}</td>
+                        <td style='text-align: center; padding: 10px 12px; border-bottom: 1px solid #dee2e6;'>{valor:.1f}</td>
+                        <td style='text-align: center; padding: 10px 12px; border-bottom: 1px solid #dee2e6;'>{posicao}</td>
+                    </tr>
+            """
+        
+        dados_avaliacao += """
+                </tbody>
+            </table>
+        </div>
+        """
+        
+        analise += dados_avaliacao
+        
+        # Resumo do perfil identificado
+        analise += f"""
+        <div style='background-color: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 10px; border-left: 5px solid #007bff;'>
+            <h4 style='color: #007bff; margin: 0 0 10px 0;'>🎯 Seu Perfil Identificado</h4>
+            <p style='font-size: 18px; margin: 0; color: #495057;'>
+                <strong>Perfil Principal:</strong> {perfil_primario} - {nomes_perfis.get(perfil_primario, perfil_primario)} ({valor_primario:.1f} pontos)<br>
+                {f"<strong>Perfil Secundário:</strong> {perfil_secundario} - {nomes_perfis.get(perfil_secundario, perfil_secundario)} ({valor_secundario:.1f} pontos)<br>" if perfil_secundario else ""}
+                <strong>Combinação:</strong> {perfil_primario}{f"/{perfil_secundario}" if perfil_secundario else ""}
+            </p>
+        </div>
+        """
+        
+        analise += "\n---\n\n"
+        
+        # ===== BLOCO 1: ANÁLISE DO PERFIL =====
+        analise += f"## 🔍 BLOCO 1 - Análise do Perfil\n\n"
+        
         # Perfil Combinado
-        chaves_combinado = [f"### {perfil_primario}/{perfil_secundario} -", f"### {perfil_secundario}/{perfil_primario} -"]
-        desc_combinado = extrair_conteudo(secoes.get("combinados", ""), chaves_combinado)
+        if perfil_secundario:
+            chaves_combinado = [f"### {perfil_primario}/{perfil_secundario} -", f"### {perfil_secundario}/{perfil_primario} -"]
+            desc_combinado = extrair_conteudo(secoes.get("combinados", ""), chaves_combinado)
 
+            if desc_combinado:
+                analise += f"### 🤝 Perfil Combinado: {perfil_primario}/{perfil_secundario}\n\n"
+                analise += f"{desc_combinado}\n\n"
+        
         # Perfil Individual (com pontos fortes e limitações)
         conteudo_individual_raw = extrair_conteudo(secoes.get("individuais", ""), [f"### Perfil {perfil_primario} -"])
         desc_individual, pontos_fortes_html, limitacoes_html = "", "", ""
+        
         if conteudo_individual_raw:
+            # Extrair descrição principal
             inicio_fortes = conteudo_individual_raw.find('- **Pontos Fortes:**')
             desc_individual = conteudo_individual_raw[:inicio_fortes if inicio_fortes != -1 else len(conteudo_individual_raw)].strip()
             
+            analise += f"### 👤 Características do seu Perfil Principal: {perfil_primario}\n\n"
+            analise += f"{desc_individual}\n\n"
+            
+            # Extrair pontos fortes
             if inicio_fortes != -1:
                 inicio_limit = conteudo_individual_raw.find('- **Limitações:**', inicio_fortes)
                 fortes_raw = conteudo_individual_raw[inicio_fortes:inicio_limit if inicio_limit != -1 else len(conteudo_individual_raw)]
                 fortes_raw = fortes_raw.replace('- **Pontos Fortes:**', '').strip()
                 fortes_lista = [f"<li>{item.strip()}</li>" for item in fortes_raw.split(',') if item.strip()]
-                pontos_fortes_html = f"<h4>Pontos Fortes ({perfil_primario})</h4><ul>{''.join(fortes_lista)}</ul>"
+                pontos_fortes_html = f"<h4>✅ Pontos Fortes ({perfil_primario})</h4><ul>{''.join(fortes_lista)}</ul>"
 
+            # Extrair limitações
             if inicio_limit != -1:
                 limitacoes_raw = conteudo_individual_raw[inicio_limit:].replace('- **Limitações:**', '').strip()
                 limitacoes_lista = [f"<li>{item.strip()}</li>" for item in limitacoes_raw.split(',') if item.strip()]
-                limitacoes_html = f"<h4>Limitações a observar ({perfil_primario})</h4><ul>{''.join(limitacoes_lista)}</ul>"
+                limitacoes_html = f"<h4>⚠️ Limitações a observar ({perfil_primario})</h4><ul>{''.join(limitacoes_lista)}</ul>"
 
-        # Extrair e formatar seções de Excesso e Aperfeiçoamento
-        desc_excesso_raw = extrair_conteudo(secoes.get("excesso", ""), [f"### {perfil_primario}"])
-        desc_aperfeicoamento_raw = extrair_conteudo(secoes.get("aperfeicoamento", ""), [f"### {perfil_primario}"])
+            # Adicionar pontos fortes e limitações
+            if pontos_fortes_html:
+                analise += f"{pontos_fortes_html}\n\n"
 
-        html_excesso = formatar_tabela_html(desc_excesso_raw, "Quando seus Pontos Fortes são usados em Excesso")
-        html_aperfeicoamento = formatar_tabela_html(desc_aperfeicoamento_raw, "Caminhos para o Aperfeiçoamento e Desenvolvimento")
-
-        # 7. Montar a análise final
-        analise = f"## Análise Comportamental DISC\n\n"
-        analise += f"### Seu Perfil: **{perfil_primario}/{perfil_secundario}**\n\n"
-
-        if desc_combinado:
-            analise += f"### O Perfil Combinado: {perfil_primario}/{perfil_secundario}\n{desc_combinado}\n\n"
+            if limitacoes_html:
+                analise += f"{limitacoes_html}\n\n"
         
-        if desc_individual:
-            analise += f"### Características do seu Perfil Principal: {perfil_primario}\n{desc_individual}\n"
+        analise += "\n---\n\n"
         
-        if pontos_fortes_html:
-            analise += f"{pontos_fortes_html}\n"
-
-        if limitacoes_html:
-            analise += f"{limitacoes_html}\n"
+        # ===== BLOCO 2: ANÁLISE DO COMPORTAMENTO =====
+        analise += f"## 🎭 BLOCO 2 - Análise do Comportamento\n\n"
+        analise += f"*Esta seção será desenvolvida na próxima etapa...*\n\n"
         
-        if html_excesso:
-            analise += f"{html_excesso}\n\n"
+        # Extrair e formatar seções de Excesso e Aperfeiçoamento (temporariamente comentado)
+        # desc_excesso_raw = extrair_conteudo(secoes.get("excesso", ""), [f"### {perfil_primario}"])
+        # desc_aperfeicoamento_raw = extrair_conteudo(secoes.get("aperfeicoamento", ""), [f"### {perfil_primario}"])
+        # html_excesso = formatar_tabela_html(desc_excesso_raw, "Quando seus Pontos Fortes são usados em Excesso")
+        # html_aperfeicoamento = formatar_tabela_html(desc_aperfeicoamento_raw, "Caminhos para o Aperfeiçoamento e Desenvolvimento")
+        
+        # if html_excesso:
+        #     analise += f"{html_excesso}\n\n"
+        # if html_aperfeicoamento:
+        #     analise += f"{html_aperfeicoamento}\n\n"
 
-        if html_aperfeicoamento:
-            analise += f"{html_aperfeicoamento}\n\n"
-
-        if not any([desc_combinado, desc_individual, desc_excesso_raw, desc_aperfeicoamento_raw]):
-            return "Não foi possível gerar a análise completa. Verifique a estrutura do arquivo 'base_conhecimento_disc.md' e as tags de seção."
+        # Validação final
+        if not any([desc_combinado if perfil_secundario else True, desc_individual]):
+            analise += f"⚠️ **Observação:** Algumas seções da análise podem estar incompletas devido à estrutura do arquivo de conhecimento."
 
         return analise
 

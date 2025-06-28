@@ -1,7 +1,7 @@
-# Data: 12/06/2025 - Hora: 09:00
-# IDE Cursor - gemini 2.5 pro
+# Data: 23/06/2025 - Hora: 09:00
+# IDE Cursor - claude-4-sonnet
 # comando: streamlit run main.py
-# Adaptação DISC para Mobile
+# Adaptação DISC - etapa de Análise DISC
 
 
 import streamlit as st
@@ -25,7 +25,7 @@ from paginas.resultados import show_results
 
 # Configuração da página - deve ser a primeira chamada do Streamlit
 st.set_page_config(
-    page_title="Assessment DISC - v.1",  # Título simplificado
+    page_title="Assessment DISC - v.1a",  # Título simplificado
     page_icon="📊",
     layout="centered",
     menu_items={
