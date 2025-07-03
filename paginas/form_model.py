@@ -1,11 +1,12 @@
 # Arquivo: form_model.py
 # type formula font attribute - somente inteiros
-# 22/06/2025 - 08:00 - ajuste função Formula
+# 03/07/2025 - 08:00 - ajuste função Formula
 
 import sqlite3
 import streamlit as st
 import pandas as pd
 import re
+import time
 # import logging
 
 from config import DB_PATH
@@ -145,9 +146,83 @@ def get_element_value(cursor, name_element, element=None):
         return float(result[0])  # Valor já está como REAL no banco
     return 0.0
 
+@st.cache_data(ttl=300)  # Cache por 5 minutos
+def _calculate_formula_cached(formula_str, values_dict, user_id):
+    """
+    Função cacheável para cálculo de fórmulas.
+    
+    Args:
+        formula_str: String da fórmula
+        values_dict: Dicionário com valores das células {name: value}
+        user_id: ID do usuário (para invalidação do cache)
+    
+    Returns:
+        float: Resultado do cálculo
+    """
+    try:
+        # Se a fórmula for um número direto
+        if isinstance(formula_str, (int, float)):
+            return float(formula_str)
+        
+        # Se for string numérica
+        if isinstance(formula_str, str):
+            formula_clean = formula_str.replace(',', '.')
+            if formula_clean.replace('.','',1).isdigit():
+                return float(formula_clean)
+        
+        processed_formula = str(formula_str)
+        
+        # Processa referências na fórmula
+        cell_refs = re.findall(r'(?:Insumos!)?[A-Z]{1,2}[0-9]+', processed_formula)
+        
+        # Substitui todas as referências pelos valores
+        for ref in cell_refs:
+            float_value = values_dict.get(ref, 0.0)
+            processed_formula = re.sub(r'\b' + re.escape(ref) + r'\b', str(float_value), processed_formula)
+        
+        # Substitui vírgulas por pontos antes do eval
+        processed_formula = processed_formula.replace(',', '.')
+        
+        # Função de divisão segura
+        def safe_div(x, y):
+            if abs(float(y)) < 1e-10:
+                return 0.0
+            return x / y
+        
+        # Ambiente seguro para eval
+        safe_env = {
+            'safe_div': safe_div,
+            '__builtins__': None
+        }
+        
+        # Substitui divisões pela função segura
+        processed_formula = re.sub(r'(\d+\.?\d*|\([^)]+\))\s*/\s*(\d+\.?\d*|\([^)]+\))', r'safe_div(\1, \2)', processed_formula)
+        
+        result = float(eval(processed_formula, safe_env, {}))
+        
+        # Formatação do resultado
+        if result is None:
+            return 0.0
+            
+        # Formata o número com casas decimais apropriadas
+        if abs(result) >= 1:
+            formatted_result = f"{result:,.0f}"
+        else:
+            formatted_result = f"{result:,.3f}"
+            
+        # Converte para formato brasileiro
+        formatted_result = formatted_result.replace(',', 'TEMP').replace('.', ',').replace('TEMP', '.')
+        
+        return float(formatted_result.replace('.', '').replace(',', '.'))
+        
+    except Exception as e:
+        # Para cache, retorna 0.0 em caso de erro (sem exibir erro na UI)
+        return 0.0
+
 def calculate_formula(formula, values, cursor):
     """
     Calcula o resultado de uma fórmula com suporte a operações matemáticas e datas.
+    Versão otimizada com cache para melhor performance.
     
     Args:
         formula: A fórmula a ser calculada (pode ser número, string ou expressão)
@@ -155,35 +230,29 @@ def calculate_formula(formula, values, cursor):
         cursor: Cursor do banco de dados
     
     Returns:
-        float: O resultado do cálculo, formatado segundo as seguintes regras:
-            - Valores >= 1: sem casas decimais (ex: "1.234")
-            - Valores < 1: 3 casas decimais (ex: "0,123")
-            - Usa vírgula como separador decimal
-            - Usa ponto como separador de milhar
-            - Retorna "0" para valores None ou inválidos
+        float: O resultado do cálculo
     """
     try:
+        # CASOS ESPECIAIS SEM CACHE (processamento direto)
+        
         # Se a fórmula for um número direto
         if isinstance(formula, (int, float)):
             return float(formula)
         
         # Se for string numérica
         if isinstance(formula, str):
-            formula = formula.replace(',', '.')
-            if formula.replace('.','',1).isdigit():
-                return float(formula)
+            formula_clean = formula.replace(',', '.')
+            if formula_clean.replace('.','',1).isdigit():
+                return float(formula_clean)
         
-        # Processa referências de diferentes abas
         processed_formula = str(formula)
         
-        # Verifica se é uma fórmula de data (mantém lógica existente)
+        # Verifica se é uma fórmula de data (sem cache por ser específica)
         if re.match(r'^\s*[A-Z][0-9]+\s*-\s*[A-Z][0-9]+\s*$', processed_formula):
-            # Extrai as duas referências
             refs = re.findall(r'[A-Z][0-9]+', processed_formula)
             if len(refs) == 2:
-                # Inverte a ordem das referências para garantir data_final - data_inicial
-                data_final = refs[0]  # B2
-                data_inicial = refs[1]  # A2
+                data_final = refs[0]
+                data_inicial = refs[1]
                 
                 # Busca as datas no banco
                 cursor.execute("""
@@ -206,60 +275,42 @@ def calculate_formula(formula, values, cursor):
                 dias_final = date_to_days(data_final_str)
                 dias_inicial = date_to_days(data_inicial_str)
                 
-                # Calcula a diferença em dias
+                # Calcula a diferença em dias e converte para meses
                 diff_dias = dias_final - dias_inicial
-                
-                # Converte para meses (usando média mais precisa de dias por mês)
                 meses = diff_dias / 30.44
                 
-                return max(0, meses)  # Garante que não retorne valor negativo
+                return max(0, meses)
+        
+        # FÓRMULAS COM CÉLULAS - USA CACHE
         
         # Processa referências na fórmula
         cell_refs = re.findall(r'(?:Insumos!)?[A-Z]{1,2}[0-9]+', processed_formula)
         
-        for ref in cell_refs:
-            float_value = get_element_value(
-                cursor, 
-                ref, 
-                st.session_state.user_id if not ref.startswith('Insumos!') else None
+        if cell_refs:
+            # OTIMIZAÇÃO 1: Consulta em lote
+            placeholders = ','.join(['?'] * len(cell_refs))
+            cursor.execute(f"""
+                SELECT name_element, value_element 
+                FROM forms_tab 
+                WHERE name_element IN ({placeholders}) AND user_id = ?
+            """, cell_refs + [st.session_state.user_id])
+            
+            # Cria dicionário para a função cacheável
+            values_dict = dict(cursor.fetchall())
+            
+            # OTIMIZAÇÃO 2: Usa cache para o cálculo
+            return _calculate_formula_cached(
+                formula_str=processed_formula,
+                values_dict=values_dict,
+                user_id=st.session_state.user_id
             )
-            processed_formula = re.sub(r'\b' + re.escape(ref) + r'\b', str(float_value), processed_formula)
         
-        # Substitui vírgulas por pontos antes do eval
-        processed_formula = processed_formula.replace(',', '.')
-        
-        # Verifica divisão por zero antes do eval
-        # Primeiro, avalia a expressão para obter os denominadores
-        def safe_div(x, y):
-            if abs(float(y)) < 1e-10:  # Considera valores muito próximos de zero
-                return 0.0
-            return x / y
-        
-        # Cria um ambiente seguro para eval com a função de divisão segura
-        safe_env = {
-            'safe_div': safe_div,
-            '__builtins__': None
-        }
-        
-        # Substitui todas as divisões pela função segura
-        processed_formula = re.sub(r'(\d+\.?\d*|\([^)]+\))\s*/\s*(\d+\.?\d*|\([^)]+\))', r'safe_div(\1, \2)', processed_formula)
-        
-        result = float(eval(processed_formula, safe_env, {}))
-        
-        # Formatação do resultado segundo as regras especificadas
-        if result is None:
-            return 0.0
-            
-        # Formata o número com as casas decimais apropriadas
-        if abs(result) >= 1:
-            formatted_result = f"{result:,.0f}"  # Sem casas decimais, com separador de milhar
-        else:
-            formatted_result = f"{result:,.3f}"  # 3 casas decimais, com separador de milhar
-            
-        # Converte para o formato brasileiro (troca . por , para decimal)
-        formatted_result = formatted_result.replace(',', 'TEMP').replace('.', ',').replace('TEMP', '.')
-        
-        return float(formatted_result.replace('.', '').replace(',', '.'))
+        # Caso não tenha referências, usa cache também
+        return _calculate_formula_cached(
+            formula_str=processed_formula,
+            values_dict={},
+            user_id=st.session_state.user_id
+        )
         
     except Exception as e:
         if "division by zero" in str(e):
@@ -419,15 +470,40 @@ def new_user(cursor, user_id):
         st.error(f"Erro ao criar registros para novo usuário: {str(e)}")
         raise
 
+def _reset_rerun_locks(section):
+    """
+    Reset das flags de controle de rerun e timestamps de debounce para permitir novas atualizações.
+    
+    Args:
+        section (str): Seção atual para resetar os locks específicos
+    """
+    try:
+        # Lista todas as chaves de controle da seção
+        keys_to_remove = [key for key in st.session_state.keys() 
+                         if ((key.startswith(f'rerun_lock_') or key.startswith(f'debounce_time_')) 
+                             and section in key)]
+        
+        # Remove as flags e timestamps antigos
+        for key in keys_to_remove:
+            del st.session_state[key]
+            
+    except Exception:
+        # Se houver erro, não afeta o funcionamento principal
+        pass
+
 def process_forms_tab(section='perfil'):
     """
     Processa registros da tabela forms_tab e exibe em layout de grade.
+    Versão otimizada com controle de st.rerun().
     
     Args:
         section (str): Seção a ser exibida ('perfil', 'comportamento' ou 'resultado')
     """
     # Define o número de colunas
     max_cols = 5
+    
+    # OTIMIZAÇÃO 3: Reset de flags de controle de rerun
+    _reset_rerun_locks(section)
     
     conn = None
     try:
@@ -698,24 +774,52 @@ def process_forms_tab(section='perfil'):
                                     cleaned_input = input_value.strip().replace('.', '').replace(',', '.')
                                     numeric_value = float(cleaned_input)
                                     
-                                    # Compara valores como float
-                                    if abs(numeric_value - float(value or 0)) > 1e-10:
-                                        # Registra log apenas uma vez por seção
-                                        if not st.session_state[log_key]:
-                                            registrar_acesso(
-                                                st.session_state.user_id,
-                                                f"forms_{section}",
-                                                f"Alteração em formulário de {section}"
-                                            )
-                                            st.session_state[log_key] = True
+                                    # OTIMIZAÇÃO 3: Controle inteligente de st.rerun() com debounce
+                                    old_value = float(value or 0)
+                                    tolerance = 1e-6  # Tolerância maior para evitar reruns por flutuação
+                                    
+                                    if abs(numeric_value - old_value) > tolerance:
+                                        # Sistema de debounce
+                                        current_time = time.time()
+                                        debounce_key = f"debounce_time_{name}_{section}"
+                                        last_update = st.session_state.get(debounce_key, 0)
+                                        min_interval = 0.5  # Mínimo 500ms entre reruns
+                                        
+                                        # Evita reruns em cascata
+                                        rerun_key = f"rerun_lock_{name}_{section}"
+                                        
+                                        if (current_time - last_update > min_interval and 
+                                            not st.session_state.get(rerun_key, False)):
                                             
-                                        cursor.execute("""
-                                            UPDATE forms_tab 
-                                            SET value_element = ? 
-                                            WHERE name_element = ? AND user_id = ?
-                                        """, (numeric_value, name, st.session_state.user_id))
-                                        conn.commit()
-                                        st.rerun()
+                                            # Registra log apenas uma vez por seção
+                                            if not st.session_state[log_key]:
+                                                registrar_acesso(
+                                                    st.session_state.user_id,
+                                                    f"forms_{section}",
+                                                    f"Alteração em formulário de {section}"
+                                                )
+                                                st.session_state[log_key] = True
+                                            
+                                            # Atualiza banco
+                                            cursor.execute("""
+                                                UPDATE forms_tab 
+                                                SET value_element = ? 
+                                                WHERE name_element = ? AND user_id = ?
+                                            """, (numeric_value, name, st.session_state.user_id))
+                                            conn.commit()
+                                            
+                                            # Marca flags para controle
+                                            st.session_state[rerun_key] = True
+                                            st.session_state[debounce_key] = current_time
+                                            st.rerun()
+                                        else:
+                                            # Atualiza apenas o session_state sem rerun
+                                            cursor.execute("""
+                                                UPDATE forms_tab 
+                                                SET value_element = ? 
+                                                WHERE name_element = ? AND user_id = ?
+                                            """, (numeric_value, name, st.session_state.user_id))
+                                            conn.commit()
                                     
                                     st.session_state.form_values[name] = numeric_value
                                     
@@ -777,16 +881,41 @@ def process_forms_tab(section='perfil'):
                                             # Calcula dias desde 01/01/1900
                                             days_since_1900 = date_to_days(input_value)
                                             
-                                            # Atualiza o banco apenas se o valor mudou
+                                            # OTIMIZAÇÃO 3: Controle inteligente de st.rerun() para datas com debounce
                                             if input_value != current_value:
-                                                cursor.execute("""
-                                                    UPDATE forms_tab 
-                                                    SET str_element = ?,
-                                                        value_element = ? 
-                                                    WHERE name_element = ? AND user_id = ?
-                                                """, (input_value, days_since_1900, name, st.session_state.user_id))
-                                                conn.commit()
-                                                st.rerun()
+                                                # Sistema de debounce para datas
+                                                current_time = time.time()
+                                                debounce_key = f"debounce_time_date_{name}_{section}"
+                                                last_update = st.session_state.get(debounce_key, 0)
+                                                min_interval = 0.3  # Intervalo menor para datas (300ms)
+                                                
+                                                # Evita reruns em cascata para datas
+                                                rerun_key = f"rerun_lock_date_{name}_{section}"
+                                                
+                                                if (current_time - last_update > min_interval and 
+                                                    not st.session_state.get(rerun_key, False)):
+                                                    
+                                                    cursor.execute("""
+                                                        UPDATE forms_tab 
+                                                        SET str_element = ?,
+                                                            value_element = ? 
+                                                        WHERE name_element = ? AND user_id = ?
+                                                    """, (input_value, days_since_1900, name, st.session_state.user_id))
+                                                    conn.commit()
+                                                    
+                                                    # Marca flags para controle
+                                                    st.session_state[rerun_key] = True
+                                                    st.session_state[debounce_key] = current_time
+                                                    st.rerun()
+                                                else:
+                                                    # Atualiza apenas o banco sem rerun
+                                                    cursor.execute("""
+                                                        UPDATE forms_tab 
+                                                        SET str_element = ?,
+                                                            value_element = ? 
+                                                        WHERE name_element = ? AND user_id = ?
+                                                    """, (input_value, days_since_1900, name, st.session_state.user_id))
+                                                    conn.commit()
                                             
                                             # Atualiza o form_values com o número de dias
                                             st.session_state.form_values[name] = days_since_1900

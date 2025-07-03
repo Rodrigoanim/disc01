@@ -1,4 +1,4 @@
-# Data: 23/06/2025 - Hora: 09:00
+# Data: 03/07/2025 - Hora: 20:00
 # IDE Cursor - claude-4-sonnet
 # comando: streamlit run main.py
 # Adaptação DISC - etapa de Análise DISC
@@ -25,7 +25,7 @@ from paginas.resultados import show_results
 
 # Configuração da página - deve ser a primeira chamada do Streamlit
 st.set_page_config(
-    page_title="Assessment DISC - v.1a",  # Título simplificado
+    page_title="Assessment DISC - v.1b",  # Título na Aba do Navegador
     page_icon="📊",
     layout="centered",
     menu_items={
