@@ -1,6 +1,7 @@
 # Arquivo: form_model.py
 # type formula font attribute - somente inteiros
-# 03/07/2025 - 08:00 - ajuste função Formula
+# 10/07/2025 - 08:00 - ajuste função Formula - OK
+# Ajuste de títulos
 
 import sqlite3
 import streamlit as st
@@ -522,9 +523,9 @@ def process_forms_tab(section='perfil'):
         
         # Títulos com estilo baseados na seção
         titles = {
-            'perfil': "Módulo de Avaliação de Perfis",
-            'comportamento': "Módulo de Avaliação de Comportamento",
-            'resultado': "Módulo de Resultados"
+            'perfil': "Função de Avaliação de Perfis",
+            'comportamento': "Função de Avaliação de Comportamento",
+            'resultado': "Função de Resultados"
         }
         
         title_text = titles.get(section, "mòdulo de Avaliação de Perfis")

@@ -1,8 +1,9 @@
-# Data: 03/07/2025 - Hora: 20:00
+# Data: 09/07/2025 - Hora: 17:00
 # IDE Cursor - claude-4-sonnet
 # comando: streamlit run main.py
-# Adaptação DISC - etapa de Análise DISC
-
+# DISC - etapa de Análise DISC
+# Troca senha do usuário - OK
+# Troca Títulos e textos da Abertura - OK
 
 import streamlit as st
 import sqlite3
@@ -106,7 +107,7 @@ def authenticate_user():
         st.session_state["user_id"] = None
 
     if not st.session_state["logged_in"]:
-        # Imagem de capa - Tela abertura
+        # Imagem de capa - Tela 
         st.image("webinar1.jpg", use_container_width=True)
             
         st.markdown("""
@@ -169,9 +170,10 @@ def get_timezone_offset():
     return datetime.now()  # Se local, usa hora atual
 
 def show_welcome():
-    """Exibe a tela de boas-vindas com informações do usuário"""
+    
     st.markdown("""
-        <p style='text-align: left; font-size: 40px; font-weight: bold;'>Bem-vindo à Pesquisa Comportamental</p>
+        <p style='text-align: center; font-size: 30px; font-weight: bold;'>Pesquisa Comportamental</p>
+        <p style='text-align: center; font-size: 30px; font-weight: bold;'>baseada na metodologia DISC</p>
     """, unsafe_allow_html=True)
     
     # Buscar dados do usuário
@@ -205,35 +207,115 @@ def show_welcome():
     
     # Coluna 2: Identidade
     with col2:
-        current_time = get_timezone_offset()
-        ambiente = "Produção" if os.getenv('RENDER') else "Local"
-        
         st.markdown(f"""
             <div style="background-color: #53a7a9; padding: 20px; border-radius: 8px; height: 100%;">
-                <p style="color: #ffffff; font-size: 24px; font-weight: bold;">Identidade</p>
+                <p style="color: #ffffff; font-size: 24px; font-weight: bold;"></p>
                 <div style="color: #ffffff; font-size: 16px;">
-                    <p>ID User: {st.session_state.get('user_id')}</p>
-                    <p>Nome: {st.session_state.get('user_name')}</p>
-                    <p>Empresa: {empresa}</p>
-                    <p>Perfil: {st.session_state.get('user_profile')}</p>
-                    </div>
+                    <p>Ao identificar seu perfil, você ativa uma jornada de autoconhecimento aplicado, que amplia sua consciência relacional, fortalece sua comunicação e potencializa suas decisões com mais clareza, presença e alinhamento</p>
+                </div>
             </div>
         """, unsafe_allow_html=True)
-    
+
     # Coluna 3: Funções
     with col3:
         modulos_html = """
             <div style="background-color: #8eb0ae; padding: 20px; border-radius: 8px; height: 100%;">
-                <p style="color: #ffffff; font-size: 24px; font-weight: bold;">Funções</p>
+                <p style="color: #ffffff; font-size: 24px; font-weight: bold;"></p>
                 <div style="color: #ffffff; font-size: 16px;">
-                    <p>Avaliação de Perfis</p>
-                    <p>Avaliação de Comportamento</p>                    
-                    <p>Análise DISC</p>                    
+                    <p>Mais do que um diagnóstico, é um ponto de partida para evoluir com propósito, colaborar com intenção e liderar com autenticidade.</p>
+                    <p></p>                    
+                    <p></p>                    
                 </div>
             </div>
         """
         
         st.markdown(modulos_html, unsafe_allow_html=True)
+
+def trocar_senha():
+    """Função para permitir que o usuário logado troque sua senha"""
+    
+    st.markdown("""
+        <p style='text-align: center; font-size: 30px; font-weight: bold;'>
+            Trocar Senha
+        </p>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+        <div style='background-color:#f0f0f0;padding:15px;border-radius:5px;margin-bottom:20px;'>
+            <p style='font-size:16px;color:#333;'>
+                <strong>Instruções:</strong><br>
+                • Digite sua senha atual para confirmar sua identidade<br>
+                • Digite a nova senha desejada<br>
+                • Confirme a nova senha para evitar erros de digitação
+            </p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # Formulário de troca de senha
+    with st.form("trocar_senha_form"):
+        senha_atual = st.text_input("Senha Atual", type="password", key="senha_atual")
+        nova_senha = st.text_input("Nova Senha", type="password", key="nova_senha")
+        confirmar_senha = st.text_input("Confirmar Nova Senha", type="password", key="confirmar_senha")
+        
+        submit_button = st.form_submit_button("Alterar Senha", use_container_width=True)
+        
+        if submit_button:
+            # Validações
+            if not senha_atual or not nova_senha or not confirmar_senha:
+                st.error("Todos os campos são obrigatórios!")
+                return
+            
+            if nova_senha != confirmar_senha:
+                st.error("As senhas não coincidem! Digite a mesma senha nos dois campos.")
+                return
+            
+            if nova_senha == senha_atual:
+                st.error("A nova senha deve ser diferente da senha atual!")
+                return
+            
+            try:
+                conn = sqlite3.connect(DB_PATH)
+                cursor = conn.cursor()
+                
+                # Verificar se a senha atual está correta
+                cursor.execute("""
+                    SELECT id FROM usuarios 
+                    WHERE user_id = ? AND senha = ?
+                """, (st.session_state["user_id"], senha_atual))
+                
+                if not cursor.fetchone():
+                    st.error("Senha atual incorreta! Verifique e tente novamente.")
+                    conn.close()
+                    return
+                
+                # Atualizar a senha
+                cursor.execute("""
+                    UPDATE usuarios 
+                    SET senha = ? 
+                    WHERE user_id = ?
+                """, (nova_senha, st.session_state["user_id"]))
+                
+                conn.commit()
+                conn.close()
+                
+                # Registrar a ação no monitor
+                registrar_acesso(
+                    user_id=st.session_state["user_id"],
+                    programa="main.py",
+                    acao="trocar_senha"
+                )
+                
+                st.success("✅ Senha alterada com sucesso!")
+                st.info("A nova senha será válida no próximo login.")
+                
+                # Limpar os campos do formulário
+                time.sleep(2)
+                st.rerun()
+                
+            except Exception as e:
+                st.error(f"Erro ao alterar senha: {str(e)}")
+                if 'conn' in locals():
+                    conn.close()
 
 def zerar_value_element():
     """Função para zerar todos os value_element do usuário logado na tabela forms_tab onde type_element é input, formula ou formulaH"""
@@ -315,8 +397,8 @@ def main():
     
     with col2:
         st.markdown("""
-            <p style='text-align: left; font-size: 44px; font-weight: bold;'>
-                Assessment DISC
+            <p style='text-align: center; font-size: 30px; font-weight: bold;'>
+                Plataforma CHAVE  - Desenvolvimento Humano, Automações com IA
             </p>
         """, unsafe_allow_html=True)
         with st.expander("Informações do Usuário / Logout", expanded=False):
@@ -351,6 +433,7 @@ def main():
         "Info Tabelas (CRUD)": show_crud,
         "Monitor de Uso": show_monitor,
         "Diagnóstico": show_diagnostics,
+        "Trocar Senha": trocar_senha,
         "Zerar Valores": zerar_value_element,
     }
     
@@ -375,6 +458,8 @@ def main():
         menu_groups["Administração"].append("Diagnóstico")
     if user_profile and user_profile.lower() in ["adm", "master"]:
         menu_groups["Administração"].append("Monitor de Uso")
+    # Adicionar Trocar Senha (disponível para todos os perfis)
+    menu_groups["Administração"].append("Trocar Senha")
     # Adicionar Zerar Valores por último
     menu_groups["Administração"].append("Zerar Valores")
     
@@ -386,14 +471,14 @@ def main():
     nav_cols = st.columns(2)
     with nav_cols[0]:
         selected_group = st.selectbox(
-            "Selecione a Função:",
+            "Selecione o Módulo:",
             options=list(menu_groups.keys()),
             key="group_selection"
         )
     
     with nav_cols[1]:
         section = st.radio(
-            "Selecione o Módulo:",
+            "Selecione a Função:",
             menu_groups[selected_group],
             key="menu_selection",
             horizontal=True
@@ -408,7 +493,7 @@ def main():
     if handler:
         handler()
     else:
-        st.error("Módulo não encontrado.")
+        st.error("Função não encontrada.")
 
     # --- FOOTER ---
     st.markdown("<br>" * 1, unsafe_allow_html=True)
