@@ -1,0 +1,72 @@
+# REGRAS ESPECÍFICAS PARA PROJETO DISC10x - STREAMLIT + PYTHON + SQLITE
+
+## 🚨 CONSULTA OBRIGATÓRIA
+SEMPRE consulte prioritariamente os seguintes arquivos antes de gerar código:
+- docs/boas_praticas_cursor.md
+- docs/Streamlit_Manual_Gemini.md
+- docs/guia_base_conhecimento_ia.md
+
+## 🎯 CONTEXTO DO PROJETO
+- Sistema de avaliação DISC com lógica de planilha Excel
+- Framework: Streamlit + Python + SQLite
+- Deploy: Render.com (disco persistente SSD)
+- Estrutura: Células com formato letra+número (B9, C789, DC9876)
+
+## 🚫 RESTRIÇÕES ABSOLUTAS
+- NUNCA criar bancos de dados, tabelas ou pastas via código
+- SEMPRE emitir warnings se algo estiver ausente
+- IMPLEMENTAR passo a passo aguardando feedback do usuário
+- DOCUMENTAR todas as alterações em arquivo .txt
+- NÃO usar funcionalidades obsoletas do Streamlit
+
+## 📋 CONVENÇÕES DE CÓDIGO OBRIGATÓRIAS
+### Cabeçalho em novos arquivos Python:
+```python
+# <nome do programa>
+# <função/funcionalidade>
+# <data e hora da atualização>
+```
+
+### Debug:
+- Usar comentário "# Debug" para prints temporários
+- Preferir saída no terminal da IDE Cursor, não via Streamlit
+
+### Streamlit Atualizado:
+- ✅ Usar: st.query_params (NÃO st.experimental_get_query_params)
+- ✅ Usar: use_container_width (NÃO use_column_width)
+- ✅ Evitar tags <h1> a <h6>, preferir <p> com styling
+- ✅ Remover comentários # de queries SQL
+- ✅ Usar @st.cache_data e @st.cache_resource conforme apropriado
+
+## 🗂️ ESTRUTURA ESPECÍFICA DO PROJETO
+- main.py: Arquivo principal da aplicação
+- paginas/: Módulos das diferentes páginas
+- data/: Bancos de dados SQLite (não modificar via código)
+- Conteudo/: Arquivos markdown com conteúdo DISC
+- config.py: Configurações do sistema
+
+## 🔄 METODOLOGIA DE TRABALHO
+1. **Análise**: Compreenda o contexto consultando a documentação
+2. **Proposta**: Apresente solução seguindo padrões estabelecidos
+3. **Implementação**: Execute passo a passo aguardando feedback
+4. **Teste**: Verifique funcionamento sem quebrar o app
+5. **Documentação**: Registre alterações conforme especificado
+
+## 💾 LÓGICA DE SISTEMA (Excel-like)
+- Sistema simula planilha Excel com células (letra + número)
+- Quando type="formulaH", usar fórmula da coluna math_element
+- Manter consistência com essa lógica em todas as implementações
+
+## 📝 DOCUMENTAÇÃO OBRIGATÓRIA
+Para cada alteração significativa, criar arquivo .txt com:
+- Descrição da alteração
+- Arquivo/programa afetado
+- Linha específica modificada
+- Justificativa técnica
+- Impacto no sistema
+
+## ⚠️ AVISOS IMPORTANTES
+- Aguarde SEMPRE feedback antes de seguir para próximo passo
+- Só inicie após receber instrução clara do objetivo
+- Modificações no banco serão feitas manualmente pelo usuário
+- Implemente com cuidado para não quebrar funcionalidades existentes 

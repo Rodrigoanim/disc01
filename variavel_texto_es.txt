@@ -1,0 +1,99 @@
+# ARCHIVO: variavel_texto_es.txt
+# Sistema de Anclas de Carrera - Textos Externos
+# Fecha: 03/08/2025 - Transición del proyecto DISC a Anclas de Carrera
+# 
+# CONVENCIÓN: [nombre_archivo]_[secuencial_3_dígitos]
+#
+# ================================================================
+
+# === CONFIGURACIÓN GENERAL ===
+app_title=Plataforma de Anclas de Carrera - v1.0a
+app_about=Sistema de Evaluación de Anclas de Carrera - Versión 1.0a - 03/08/2025
+
+# === MAIN.PY - PANTALLA DE LOGIN ===
+main_001=Plataforma Comportamental
+main_002=Correo electrónico
+main_003=Contraseña
+main_004=Declaro que he leído y acepto los [términos de uso de la herramienta](https://ag93eventos.com.br/ear/Termos_Uso_DISC.pdf)
+main_005=Entrar
+main_006=Debe aceptar los términos de uso para continuar.
+main_007=Correo electrónico o contraseña inválidos. Por favor, verifique sus datos e intente nuevamente.
+
+# === MAIN.PY - PANTALLA BIENVENIDA ===
+main_008=Investigación Basada en la Metodología de Anclas de Carrera
+main_009=Propósito
+main_010=Esta Aplicación Web tiene como objetivo identificar sus anclas de carrera predominantes, revelando sus valores, motivaciones y aspiraciones profesionales fundamentales.
+main_011=Al identificar sus anclas, activa un viaje de autoconocimiento profesional aplicado que amplía su conciencia sobre sus motivaciones, fortalece sus elecciones de carrera y potencia sus decisiones con más claridad, propósito y alineación.
+main_012=Más que un diagnóstico, es un punto de partida para evolucionar con propósito, hacer elecciones profesionales conscientes y construir una carrera con autenticidad y satisfacción.
+
+# === MAIN.PY - ENCABEZADO DE APLICACIÓN ===
+main_013=Plataforma CHAVE - Desarrollo Humano, Automatizaciones con IA
+main_014=Información del Usuario / Cerrar Sesión
+main_015=**Usuario:**
+main_016=**ID:**
+main_017=**Perfil:**
+main_018=Cerrar Sesión
+
+# === MAIN.PY - CAMBIAR CONTRASEÑA ===
+main_019=Cambiar Contraseña
+main_020=**Instrucciones:**<br>• Digite su contraseña actual para confirmar su identidad<br>• Digite la nueva contraseña deseada<br>• Confirme la nueva contraseña para evitar errores de escritura
+main_021=Contraseña Actual
+main_022=Nueva Contraseña
+main_023=Confirmar Nueva Contraseña
+main_024=Cambiar Contraseña
+main_025=¡Todos los campos son obligatorios!
+main_026=¡Las contraseñas no coinciden! Digite la misma contraseña en ambos campos.
+main_027=¡La nueva contraseña debe ser diferente de la contraseña actual!
+main_028=¡Contraseña actual incorrecta! Verifique e intente nuevamente.
+main_029=✅ ¡Contraseña cambiada exitosamente!
+main_030=La nueva contraseña será válida en el próximo inicio de sesión.
+main_031=Error al cambiar contraseña: {error}
+
+# === MAIN.PY - REINICIAR VALORES ===
+main_032=¿Confirmar reinicio de valores?
+main_033=Reiniciar Valores
+main_034=Confirme la operación para proceder
+main_035=¡Valores reiniciados exitosamente! ({records} registros actualizados)
+main_036=Error al reiniciar valores: {error}
+
+# === MAIN.PY - MODO ADMINISTRATIVO ===
+main_037=🔍 **Modo Administrativo:** Visualizando análisis de **{usuario}**
+main_038=⬅️ **Volver al Módulo Administrativo**
+main_039=Análisis Administrativo - {usuario}
+
+# === MAIN.PY - NAVEGACIÓN ===
+main_040=Seleccionar Módulo:
+main_041=Seleccionar Función:
+
+# === MAIN.PY - GRUPOS DE MENÚ ===
+main_042=Apertura
+main_043=Evaluación
+main_044=Análisis
+main_045=Administración
+
+# === MAIN.PY - OPCIONES DE MENÚ ===
+main_046=Bienvenido
+main_047=Anclas P1
+main_048=Anclas P2
+main_049=Resultados
+main_050=de Evaluaciones
+main_051=Información de Tablas (CRUD)
+main_052=Monitor de Uso
+main_053=Diagnóstico
+main_054=Análisis de Usuarios
+main_055=Cambiar Contraseña
+main_056=Reiniciar Valores
+
+# === MAIN.PY - MENSAJES DE SISTEMA ===
+main_057=Base de datos no encontrada en {ruta}
+main_058=Carpeta '{carpeta}' no encontrada. El programa no puede continuar.
+main_059=Base de datos '{base_datos}' no encontrada. El programa no puede continuar.
+main_060=Función no encontrada.
+
+# === MAIN.PY - TÍTULOS DE PÁGINAS ===
+main_061=Análisis de Evaluaciones
+
+# === FORM_MODEL.PY - TÍTULOS DE SECCIONES ===
+form_model_001=Evaluación de Anclas de Carrera - Parte 1
+form_model_002=Evaluación de Anclas de Carrera - Parte 2
+form_model_003=Resultados de Evaluaciones 

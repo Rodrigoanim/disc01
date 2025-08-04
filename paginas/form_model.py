@@ -12,6 +12,7 @@ import time
 
 from config import DB_PATH
 from paginas.monitor import registrar_acesso  # Ajustado para incluir o caminho completo
+from texto_manager import get_texto
 
 MAX_COLUMNS = 5  # Número máximo de colunas no layout
 
@@ -492,13 +493,13 @@ def _reset_rerun_locks(section):
         # Se houver erro, não afeta o funcionamento principal
         pass
 
-def process_forms_tab(section='perfil'):
+def process_forms_tab(section='ancoras_p1'):
     """
     Processa registros da tabela forms_tab e exibe em layout de grade.
     Versão otimizada com controle de st.rerun().
     
     Args:
-        section (str): Seção a ser exibida ('perfil', 'comportamento' ou 'resultado')
+        section (str): Seção a ser exibida ('ancoras_p1', 'ancoras_p2' ou 'resultado')
     """
     # Define o número de colunas
     max_cols = 5
@@ -523,12 +524,15 @@ def process_forms_tab(section='perfil'):
         
         # Títulos com estilo baseados na seção
         titles = {
-            'perfil': "Função de Avaliação de Perfis",
-            'comportamento': "Função de Avaliação de Comportamento",
-            'resultado': "Função de Resultados"
+            'ancoras_p1': get_texto('form_model_001', 'Avaliação de Âncoras de Carreira - Parte 1'),
+            'ancoras_p2': get_texto('form_model_002', 'Avaliação de Âncoras de Carreira - Parte 2'),
+            'resultado': get_texto('form_model_003', 'Resultados das Avaliações'),
+            # Manter compatibilidade com sistema antigo
+            'perfil': get_texto('form_model_001', 'Avaliação de Âncoras de Carreira - Parte 1'),
+            'comportamento': get_texto('form_model_002', 'Avaliação de Âncoras de Carreira - Parte 2')
         }
         
-        title_text = titles.get(section, "mòdulo de Avaliação de Perfis")
+        title_text = titles.get(section, "Módulo de Avaliação de Âncoras de Carreira")
         st.markdown(f"""
             <p style='
                 text-align: left;

@@ -1,5 +1,5 @@
 # resultados.py
-# Data: 28/06/2025 09:35
+# Data: 01/08/2025 - 22h00
 # Pagina de resultados e Analises - Dashboard.
 # Tabela: forms_resultados
 
@@ -38,12 +38,12 @@ from config import DB_PATH  # Adicione esta importação
 
 # Dicionário de títulos para cada tabela
 TITULOS_TABELAS = {
-    "forms_resultados": "Análise: Avaliação DISC"
+    "forms_resultados": "Análise: Âncoras de Carreira"
 }
 
 # Dicionário de subtítulos para cada tabela
 SUBTITULOS_TABELAS = {
-    "forms_resultados": "Avaliação de Perfis"
+    "forms_resultados": "Avaliação de Âncoras de Carreira"
 }
 
 def format_br_number(value):
@@ -314,17 +314,29 @@ def grafico_barra(cursor, element):
             valor = result[0] if result and result[0] is not None else 0.0
             valores.append(valor)
         
-        # Define as cores fixas para cada posição DISC (D, I, S, C)
-        cores_disc = ['#B22222', '#DAA520', '#2E8B57', '#4682B4']
+        # Sistema exclusivo para Âncoras de Carreira - Cores do prisma/espectro
+        cores_ancoras = {
+            'C31': '#FF0000',  # Vermelho - Competência Técnica
+            'C32': '#FF8C00',  # Laranja - Gestão Geral  
+            'C33': '#FFD700',  # Amarelo - Autonomia
+            'C34': '#00FF00',  # Verde - Segurança
+            'D31': '#0080FF',  # Azul - Criatividade
+            'D32': '#4B0082',  # Índigo - Serviço
+            'D33': '#8A2BE2',  # Violeta - Estilo de Vida
+            'D34': '#FF1493'   # Rosa - Desafio
+        }
         
-        # Aplica as cores pela posição (ordem das barras)
+        # Mapear códigos das âncoras para cores
         cores = []
-        for i in range(len(labels)):
-            if i < len(cores_disc):
-                cores.append(cores_disc[i])
-            else:
-                cores.append('#1f77b4')  # cor padrão se houver mais de 4 barras
+        cores_prisma = ['#FF0000', '#FF8C00', '#FFD700', '#00FF00', '#0080FF', '#4B0082', '#8A2BE2', '#FF1493']
         
+        for i, type_name in enumerate(type_names):
+            codigo = type_name.strip()
+            if codigo in cores_ancoras:
+                cores.append(cores_ancoras[codigo])
+            else:
+                # Fallback: usar índice nas cores do prisma
+                cores.append(cores_prisma[i % len(cores_prisma)])
 
         # Adiciona o título antes do gráfico usando markdown
         if msg:
@@ -563,16 +575,30 @@ def gerar_dados_grafico(cursor, elemento, tabela_escolhida: str, height_pct=100,
             result = cursor.fetchone()
             valor = float(result[0]) if result and result[0] is not None else 0.0
             valores.append(valor)
-        # Define as cores fixas para cada posição DISC (D, I, S, C)
-        cores_disc = ['#B22222', '#DAA520', '#2E8B57', '#4682B4']
         
-        # Aplica as cores pela posição (ordem das barras)
+        # Sistema exclusivo para Âncoras de Carreira - Cores do prisma/espectro
+        cores_ancoras = {
+            'C31': '#FF0000',  # Vermelho - Competência Técnica
+            'C32': '#FF8C00',  # Laranja - Gestão Geral  
+            'C33': '#FFD700',  # Amarelo - Autonomia
+            'C34': '#00FF00',  # Verde - Segurança
+            'D31': '#0080FF',  # Azul - Criatividade
+            'D32': '#4B0082',  # Índigo - Serviço
+            'D33': '#8A2BE2',  # Violeta - Estilo de Vida
+            'D34': '#FF1493'   # Rosa - Desafio
+        }
+        
+        # Mapear códigos das âncoras para cores
         cores = []
-        for i in range(len(labels)):
-            if i < len(cores_disc):
-                cores.append(cores_disc[i])
+        cores_prisma = ['#FF0000', '#FF8C00', '#FFD700', '#00FF00', '#0080FF', '#4B0082', '#8A2BE2', '#FF1493']
+        
+        for i, type_name in enumerate(type_names):
+            codigo = type_name.strip()
+            if codigo in cores_ancoras:
+                cores.append(cores_ancoras[codigo])
             else:
-                cores.append('#1f77b4')  # cor padrão se houver mais de 4 barras
+                # Fallback: usar índice nas cores do prisma
+                cores.append(cores_prisma[i % len(cores_prisma)])
         # Ajustar base_width para ocupar mais da largura da página A4
         base_width = 250
         base_height = 180
@@ -665,7 +691,7 @@ def subtitulo(titulo_pagina: str):
                         st.download_button(
                             label="Baixar PDF",
                             data=buffer.getvalue(),
-                            file_name="simulacoes.pdf",
+                            file_name="Ancoras_de_Carreira.pdf",
                             mime="application/pdf",
                         )
                     
@@ -679,10 +705,119 @@ def subtitulo(titulo_pagina: str):
     except Exception as e:
         st.error(f"Erro ao gerar interface: {str(e)}")
 
+def convert_markdown_to_html(text):
+    """
+    Converte markdown básico para HTML que o ReportLab pode interpretar
+    Versão SIMPLIFICADA que evita HTML complexo
+    """
+    import re
+    
+    # Processar linha por linha para evitar conflitos
+    lines = text.split('\n')
+    processed_lines = []
+    
+    for line in lines:
+        if not line.strip():
+            processed_lines.append(line)
+            continue
+            
+        processed_line = line
+        
+        # Processar apenas dentro da linha atual
+        if line.strip().startswith('- ') or line.strip().startswith('* '):
+            # Converter para item de lista SEM HTML
+            item_text = line.strip()[2:]  # Remove '- ' ou '* '
+            # Remover formatações markdown mas manter texto
+            item_text = re.sub(r'\*\*(.*?)\*\*', r'\1', item_text)  # Negrito → texto normal
+            item_text = re.sub(r'(?<!\*)\*(?!\*)([^*]+?)\*(?!\*)', r'\1', item_text)  # Itálico → texto normal
+            processed_line = f'• {item_text}'
+            
+        elif line.strip().startswith('> '):
+            # Converter citação SEM HTML
+            quote_text = line.strip()[2:]  # Remove '> '
+            # Remover formatações markdown mas manter texto
+            quote_text = re.sub(r'\*\*(.*?)\*\*', r'\1', quote_text)
+            quote_text = re.sub(r'(?<!\*)\*(?!\*)([^*]+?)\*(?!\*)', r'\1', quote_text)
+            processed_line = f'"{quote_text}"'
+            
+        else:
+            # Linha normal - REMOVER formatações markdown ao invés de converter para HTML
+            # Remover negrito **texto** → texto
+            processed_line = re.sub(r'\*\*(.*?)\*\*', r'\1', processed_line)
+            # Remover itálico *texto* → texto
+            processed_line = re.sub(r'(?<!\*)\*(?!\*)([^*<>]+?)\*(?!\*)', r'\1', processed_line)
+        
+        processed_lines.append(processed_line)
+    
+    return '\n'.join(processed_lines)
+
+def clean_text_for_reportlab(text):
+    """
+    Limpa texto para evitar problemas de encoding no ReportLab
+    Versão simplificada sem HTML
+    """
+    # Remover ou substituir caracteres problemáticos
+    replacements = {
+        '\u2014': '—',  # em dash
+        '\u2013': '–',  # en dash
+        '\u2018': "'",  # left single quote
+        '\u2019': "'",  # right single quote
+        '\u201c': '"',  # left double quote
+        '\u201d': '"',  # right double quote
+        '\u2026': '...',  # ellipsis
+        '\xa0': ' ',    # non-breaking space
+        '\u00e7': 'ç',  # ç explícito
+        '\u00e3': 'ã',  # ã explícito
+        '\u00e1': 'á',  # á explícito
+        '\u00e9': 'é',  # é explícito
+        '\u00ed': 'í',  # í explícito
+        '\u00f3': 'ó',  # ó explícito
+        '\u00fa': 'ú',  # ú explícito
+        '\u00e2': 'â',  # â explícito
+    }
+    
+    for char, replacement in replacements.items():
+        text = text.replace(char, replacement)
+    
+    # Remover qualquer tag HTML residual
+    import re
+    text = re.sub(r'<[^>]+>', '', text)
+    
+    return text.strip()
+
+def split_long_paragraph(text, max_length=2000):
+    """
+    Divide parágrafos muito longos em partes menores, respeitando pontuação
+    """
+    if len(text) <= max_length:
+        return [text]
+    
+    # Tentar quebrar em frases (por ponto final + espaço)
+    sentences = []
+    current = ""
+    
+    # Dividir por pontos finais, mas manter pontos em abreviações
+    parts = text.split('. ')
+    for i, part in enumerate(parts):
+        if i < len(parts) - 1:
+            part += '.'
+        
+        if len(current + part) <= max_length:
+            current += part + " " if i < len(parts) - 1 else part
+        else:
+            if current:
+                sentences.append(current.strip())
+            current = part + " " if i < len(parts) - 1 else part
+    
+    if current:
+        sentences.append(current.strip())
+    
+    return sentences
+
 def generate_pdf_content(cursor, user_id: int, tabela_escolhida: str):
     """
     Função para gerar PDF com layout específico: 
-    Tabela Perfil → Gráfico Perfil → Tabela Comportamento → Gráfico Comportamento
+                    Tabela Âncoras P1 → Gráfico Âncoras P1 → Tabela Âncoras P2 → Gráfico Âncoras P2
     """
     try:
         # Configurações de dimensões
@@ -749,7 +884,7 @@ def generate_pdf_content(cursor, user_id: int, tabela_escolhida: str):
             )
 
             # Título principal
-            titulo_principal = TITULOS_TABELAS.get(tabela_escolhida, "Análise DISC")
+            titulo_principal = TITULOS_TABELAS.get(tabela_escolhida, "Análise de Âncoras de Carreira")
             elements.append(Paragraph(titulo_principal, title_style))
             elements.append(Spacer(1, 20))
 
@@ -769,71 +904,454 @@ def generate_pdf_content(cursor, user_id: int, tabela_escolhida: str):
             tabelas = [e for e in elementos if e[1] == 'tabela']
             graficos = [e for e in elementos if e[1] == 'grafico']
 
-            # Layout específico: Tabela Perfil → Gráfico Perfil → Tabela Comportamento → Gráfico Comportamento
+            # GERAR RANKING UNIFICADO DAS ÂNCORAS (como na versão da tela)
             
-            # 1. TABELA PERFIL (primeira tabela encontrada)
-            if len(tabelas) > 0:
-                tabela_perfil = tabelas[0]
-                dados_tabela_perfil = gerar_dados_tabela(pdf_cursor, tabela_perfil, height_pct=100, width_pct=100)
-                if dados_tabela_perfil:
-                    # Cria tabela com título "Resultados do Perfil"
-                    elements.append(Paragraph("Resultados do Perfil", graphic_title_style))
-                    elements.append(Spacer(1, 10))
-                    t = Table(dados_tabela_perfil['data'], colWidths=[table_width * 0.6, table_width * 0.4])
-                    t.setStyle(table_style)
-                    elements.append(Table([[t]], colWidths=[table_width], style=[('ALIGN', (0,0), (-1,-1), 'CENTER')]))
-                    elements.append(Spacer(1, 20))
-
-            # 2. GRÁFICO PERFIL (primeiro gráfico encontrado)
-            if len(graficos) > 0:
-                grafico_perfil = graficos[0]
-                dados_grafico_perfil = gerar_dados_grafico(pdf_cursor, grafico_perfil, tabela_escolhida, height_pct=100, width_pct=100)
-                if dados_grafico_perfil:
-                    # Usa o título do próprio gráfico ou padrão
-                    titulo_grafico = dados_grafico_perfil['title'] or "RESULTADOS DE PERFIS"
-                    elements.append(Paragraph(titulo_grafico, graphic_title_style))
-                    elements.append(Spacer(1, 10))
-                    elements.append(Table(
-                        [[dados_grafico_perfil['image']]],
-                        colWidths=[graph_width],
-                        style=[('ALIGN', (0,0), (-1,-1), 'CENTER')]
-                    ))
-                    elements.append(Spacer(1, 30))
-
-            # 3. TABELA COMPORTAMENTO (segunda tabela ou cópia da primeira)
-            if len(tabelas) > 1:
-                tabela_comportamento = tabelas[1]
-            else:
-                tabela_comportamento = tabelas[0] if tabelas else None
+            # Buscar dados das âncoras para o ranking (códigos corretos)
+            mapeamento_ancoras_pdf = {
+                'C31': {'nome': 'Competência Técnica / Funcional', 'descricao': 'Desenvolvimento de expertise técnica e especialização profissional', 'arquivo': 'Conteudo/A1_Competencia_Tecnica.md'},
+                'C32': {'nome': 'Gestão Geral', 'descricao': 'Liderança, coordenação e responsabilidade gerencial', 'arquivo': 'Conteudo/A2_Gestao_Geral.md'},
+                'C33': {'nome': 'Autonomia / Independência', 'descricao': 'Liberdade para tomar decisões e trabalhar independentemente', 'arquivo': 'Conteudo/A3_Autonomia_Independencia.md'},
+                'C34': {'nome': 'Segurança / Estabilidade', 'descricao': 'Estabilidade financeira e segurança no emprego', 'arquivo': 'Conteudo/A4_Seguranca_Estabilidade.md'},
+                'D31': {'nome': 'Criatividade Empreendedora', 'descricao': 'Inovação, criação de novos produtos e empreendedorismo', 'arquivo': 'Conteudo/A5_Criatividade_Empreendedora.md'},
+                'D32': {'nome': 'Serviço / Dedicação', 'descricao': 'Contribuição para a sociedade e ajuda aos outros', 'arquivo': 'Conteudo/A6_Servico_Dedicacao.md'},
+                'D33': {'nome': 'Estilo de Vida', 'descricao': 'Equilíbrio entre vida pessoal e profissional', 'arquivo': 'Conteudo/A7_Estilo_Vida.md'},
+                'D34': {'nome': 'Desafio Puro', 'descricao': 'Busca por desafios complexos e competição', 'arquivo': 'Conteudo/A8_Desafio_Puro.md'}
+            }
+            
+            # Calcular ranking das âncoras
+            ranking_ancoras_pdf = []
+            for codigo in mapeamento_ancoras_pdf.keys():
+                # Usar mesma lógica da função da tela que funciona
+                pdf_cursor.execute("""
+                    SELECT value_element 
+                    FROM forms_resultados 
+                    WHERE name_element = ? 
+                    AND user_id = ?
+                    ORDER BY ID_element DESC
+                    LIMIT 1
+                """, (codigo.strip(), user_id))
                 
-            if tabela_comportamento:
-                dados_tabela_comportamento = gerar_dados_tabela(pdf_cursor, tabela_comportamento, height_pct=100, width_pct=100)
-                if dados_tabela_comportamento:
-                    # Cria tabela com título "Resultados do Comportamento"
-                    elements.append(Paragraph("Resultados do Comportamento", graphic_title_style))
-                    elements.append(Spacer(1, 10))
-                    t = Table(dados_tabela_comportamento['data'], colWidths=[table_width * 0.6, table_width * 0.4])
-                    t.setStyle(table_style)
-                    elements.append(Table([[t]], colWidths=[table_width], style=[('ALIGN', (0,0), (-1,-1), 'CENTER')]))
-                    elements.append(Spacer(1, 20))
-
-            # 4. GRÁFICO COMPORTAMENTO (segundo gráfico ou cópia do primeiro)
-            if len(graficos) > 1:
-                grafico_comportamento = graficos[1]
-            else:
-                grafico_comportamento = graficos[0] if graficos else None
+                result = pdf_cursor.fetchone()
+                valor_total = parse_br_number(result[0]) if result and result[0] is not None else 0.0
                 
-            if grafico_comportamento:
-                dados_grafico_comportamento = gerar_dados_grafico(pdf_cursor, grafico_comportamento, tabela_escolhida, height_pct=100, width_pct=100)
-                if dados_grafico_comportamento:
-                    # Força o título para "RESULTADOS DE COMPORTAMENTO"
-                    elements.append(Paragraph("RESULTADOS DE COMPORTAMENTO", graphic_title_style))
+                ranking_ancoras_pdf.append({
+                    'codigo': codigo,
+                    'nome': mapeamento_ancoras_pdf[codigo]['nome'],
+                    'valor_total': valor_total,
+                    'descricao': mapeamento_ancoras_pdf[codigo]['descricao'],
+                    'arquivo': mapeamento_ancoras_pdf[codigo]['arquivo']
+                })
+            
+            # Ordenar ranking
+            ranking_ancoras_pdf.sort(key=lambda x: x['valor_total'], reverse=True)
+            
+            # Verificar se há dados suficientes
+            valores_validos_pdf = [a for a in ranking_ancoras_pdf if a['valor_total'] > 0]
+            if len(valores_validos_pdf) >= 3:
+                # 1. TABELA RANKING UNIFICADO DAS ÂNCORAS
+                elements.append(Paragraph("RANKING COMPLETO DAS ÂNCORAS DE CARREIRA", graphic_title_style))
+                elements.append(Spacer(1, 5))
+                
+                # Criar dados da tabela de ranking
+                dados_ranking_pdf = [['Posição', 'Âncora de Carreira', 'Valor Total', 'Descrição']]
+                for i, ancora in enumerate(ranking_ancoras_pdf):
+                    posicao = f"{i+1}º"
+                    valor_total_br = f"{ancora['valor_total']:.1f}".replace('.', ',')
+                    # Quebrar descrição longa para melhor formatação
+                    descricao = ancora['descricao']
+                    if len(descricao) > 60:
+                        palavras = descricao.split(' ')
+                        if len(palavras) > 8:
+                            meio = len(palavras) // 2
+                            descricao = ' '.join(palavras[:meio]) + '<br/>' + ' '.join(palavras[meio:])
+                    
+                    dados_ranking_pdf.append([
+                        posicao,
+                        ancora['nome'],
+                        valor_total_br,
+                        Paragraph(descricao, styles['Normal'])
+                    ])
+                
+                # Estilo específico para tabela de ranking
+                ranking_table_style = TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e8f5e9')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                    ('ALIGN', (0, 0), (0, -1), 'CENTER'),  # Posição centralizada
+                    ('ALIGN', (1, 0), (1, -1), 'LEFT'),    # Nome à esquerda
+                    ('ALIGN', (2, 0), (2, -1), 'CENTER'),  # Valor centralizado
+                    ('ALIGN', (3, 0), (3, -1), 'LEFT'),    # Descrição à esquerda
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),   # Alinhamento vertical no topo
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 7),
+                    ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                    ('FONTSIZE', (0, 1), (-1, -1), 10),
+                    ('TOPPADDING', (0, 0), (-1, -1), 4),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                    ('BOX', (0, 0), (-1, -1), 2, colors.black),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f9f9f9')])
+                ])
+                
+                # Ajustar larguras das colunas para melhor distribuição
+                col_widths = [50, 140, 60, 200]  # Larguras fixas em pontos
+                t_ranking = Table(dados_ranking_pdf, colWidths=col_widths)
+                t_ranking.setStyle(ranking_table_style)
+                
+                # Adicionar tabela diretamente (sem wrapper)
+                elements.append(t_ranking)
+                elements.append(Spacer(1, 10))
+
+                # 2. GRÁFICO DE BARRAS DO RANKING
+                elements.append(Paragraph("GRÁFICO DO RANKING DAS ÂNCORAS", graphic_title_style))
+                elements.append(Spacer(1, 5))
+                
+                # Preparar dados para o gráfico de barras
+                labels_grafico = [ancora['nome'] for ancora in ranking_ancoras_pdf]
+                valores_grafico = [ancora['valor_total'] for ancora in ranking_ancoras_pdf]
+                
+                # Cores do prisma/espectro para as 8 âncoras (mesmo padrão da tela)
+                cores_ancoras_grafico = {
+                    'C31': '#FF0000',  # Vermelho - Competência Técnica
+                    'C32': '#FF8C00',  # Laranja - Gestão Geral  
+                    'C33': '#FFD700',  # Amarelo - Autonomia
+                    'C34': '#00FF00',  # Verde - Segurança
+                    'D31': '#0080FF',  # Azul - Criatividade
+                    'D32': '#4B0082',  # Índigo - Serviço
+                    'D33': '#8A2BE2',  # Violeta - Estilo de Vida
+                    'D34': '#FF1493'   # Rosa - Desafio
+                }
+                
+                # Mapear cores por código
+                cores_grafico = []
+                for ancora in ranking_ancoras_pdf:
+                    codigo = ancora['codigo']
+                    if codigo in cores_ancoras_grafico:
+                        cores_grafico.append(cores_ancoras_grafico[codigo])
+                    else:
+                        cores_grafico.append('#1f77b4')  # Cor padrão
+                
+                # Criar gráfico usando Plotly
+                fig = go.Figure(data=[
+                    go.Bar(
+                        x=labels_grafico,
+                        y=valores_grafico,
+                        marker=dict(color=cores_grafico),
+                        showlegend=False
+                    )
+                ])
+                
+                # Configurar layout do gráfico (reduzido para caber na página)
+                fig.update_layout(
+                    showlegend=False,
+                    height=280,
+                    width=450,
+                    margin=dict(t=15, b=90, l=50, r=15),  # Aumentar margem inferior para textos
+                    xaxis=dict(
+                        title=None,
+                        tickfont=dict(size=8),
+                        tickangle=-45,  # Rotacionar rótulos para melhor legibilidade
+                        tickmode='array',
+                        tickvals=list(range(len(labels_grafico))),
+                        ticktext=[label[:20] + '...' if len(label) > 20 else label for label in labels_grafico]  # Truncar nomes longos
+                    ),
+                    yaxis=dict(
+                        title="Pontuação",
+                        title_font=dict(size=10),
+                        tickfont=dict(size=9),
+                        tickformat=",.",
+                        separatethousands=True
+                    ),
+                    plot_bgcolor='white',
+                    paper_bgcolor='white'
+                )
+                
+                # Converter para imagem e adicionar ao PDF
+                img_bytes = fig.to_image(format="png", scale=2)
+                img = Image(io.BytesIO(img_bytes), width=450, height=280)
+                elements.append(Table([[img]], colWidths=[450], style=[('ALIGN', (0,0), (-1,-1), 'CENTER')]))
+                elements.append(Spacer(1, 15))
+                
+            else:
+                elements.append(Paragraph("Dados insuficientes para gerar ranking das âncoras", styles['Normal']))
+                elements.append(Spacer(1, 20))
+
+            # Adicionar análise textual das âncoras (A0_Abertura + Top 3)
+            elements.append(PageBreak())
+            elements.append(Paragraph("ANÁLISE DAS ÂNCORAS DE CARREIRA", title_style))
+            elements.append(Spacer(1, 20))
+            
+            # Usar o ranking já calculado acima
+            top_3 = ranking_ancoras_pdf[:3]
+            
+            # Verificar se há dados suficientes (reutilizar validação anterior)
+            if len(valores_validos_pdf) >= 3:
+                
+                # 1. SEÇÃO "SUAS 3 ÂNCORAS PRINCIPAIS" (concentrada na página 2)
+                elements.append(Paragraph("SUAS 3 ÂNCORAS PRINCIPAIS", graphic_title_style))
+                elements.append(Spacer(1, 10))
+                
+                # Criar caixa em destaque com as top 3
+                top3_dados = [
+                    ['🏆 Suas Âncoras Mais Fortes:'],
+                    [f'🥇 1º Lugar: {top_3[0]["nome"]} - {top_3[0]["valor_total"]:.1f} pontos'],
+                    [f'🥈 2º Lugar: {top_3[1]["nome"]} - {top_3[1]["valor_total"]:.1f} pontos'],
+                    [f'🥉 3º Lugar: {top_3[2]["nome"]} - {top_3[2]["valor_total"]:.1f} pontos']
+                ]
+                
+                # Estilo da caixa destacada
+                top3_style = TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#e8f5e8')),
+                    ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#155724')),
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 14),
+                    ('FONTNAME', (0, 1), (-1, -1), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 1), (-1, -1), 12),
+                    ('TOPPADDING', (0, 0), (-1, -1), 12),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 15),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 15),
+                    ('BOX', (0, 0), (-1, -1), 3, colors.HexColor('#28a745')),
+                    ('LINEBELOW', (0, 0), (-1, 0), 2, colors.HexColor('#28a745')),
+                ])
+                
+                top3_table = Table(top3_dados, colWidths=[450])
+                top3_table.setStyle(top3_style)
+                elements.append(top3_table)
+                elements.append(Spacer(1, 15))
+                
+                # 2. SEÇÃO "ÂNCORA DOMINANTE" (igual da tela)
+                ancora_principal = top_3[0]
+                segunda_ancora = top_3[1]
+                terceira_ancora = top_3[2]
+                
+                # Calcular diferenças absolutas
+                diferenca_1_2 = ancora_principal['valor_total'] - segunda_ancora['valor_total']
+                diferenca_1_3 = ancora_principal['valor_total'] - terceira_ancora['valor_total']
+                diferenca_2_3 = segunda_ancora['valor_total'] - terceira_ancora['valor_total']
+                
+                # Calcular diferenças percentuais
+                perc_1_2 = (diferenca_1_2 / segunda_ancora['valor_total'] * 100) if segunda_ancora['valor_total'] > 0 else 0
+                perc_1_3 = (diferenca_1_3 / terceira_ancora['valor_total'] * 100) if terceira_ancora['valor_total'] > 0 else 0
+                
+                # Determinar tipo de perfil conforme Analise Tipo de Perfil.md
+                if ((diferenca_1_2 >= 20 or perc_1_2 >= 25) and 
+                    (diferenca_1_3 >= 20 or perc_1_3 >= 25)):
+                    tipo_perfil = "DOMINANTE"
+                    criterio = f"1ª âncora: +{diferenca_1_2:.1f}pts ({perc_1_2:.1f}%) da 2ª e +{diferenca_1_3:.1f}pts ({perc_1_3:.1f}%) da 3ª"
+                elif (diferenca_1_2 <= 15 and diferenca_1_3 <= 15 and diferenca_2_3 <= 15):
+                    tipo_perfil = "EQUILIBRADO"
+                    criterio = f"Diferenças pequenas entre top 3: {diferenca_1_2:.1f}pts, {diferenca_1_3:.1f}pts, {diferenca_2_3:.1f}pts"
+                else:
+                    tipo_perfil = "MODERADAMENTE DOMINANTE"
+                    criterio = f"Perfil intermediário: +{diferenca_1_2:.1f}pts da 2ª, +{diferenca_1_3:.1f}pts da 3ª"
+                
+                # Criar caixa "Âncora Dominante"
+                elements.append(Paragraph("ÂNCORA DOMINANTE", graphic_title_style))
+                elements.append(Spacer(1, 10))
+                
+                ancora_dominante_dados = [
+                    [f'🎯 Âncora Dominante: {ancora_principal["nome"]}'],
+                    [f'📊 Pontuação: {ancora_principal["valor_total"]:.1f} pontos'],
+                    [f'📈 Tipo de Perfil: {tipo_perfil}'],
+                    [f'📋 Critério: {criterio}']
+                ]
+                
+                # Estilo da caixa amarela
+                ancora_dominante_style = TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#fff3cd')),
+                    ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#856404')),
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 11),
+                    ('TOPPADDING', (0, 0), (-1, -1), 10),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 15),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 15),
+                    ('BOX', (0, 0), (-1, -1), 3, colors.HexColor('#ffc107')),
+                ])
+                
+                ancora_dominante_table = Table(ancora_dominante_dados, colWidths=[450])
+                ancora_dominante_table.setStyle(ancora_dominante_style)
+                elements.append(ancora_dominante_table)
+                elements.append(Spacer(1, 15))
+                
+                # 3. SEMPRE CARREGAR ABERTURA PRIMEIRO
+                try:
+                    with open('Conteudo/A0_Abertura_Devolutiva.md', 'r', encoding='utf-8') as f:
+                        conteudo_abertura = f.read()
+                    # Converter markdown para PDF (com formatação completa)
+                    conteudo_formatado = convert_markdown_to_html(conteudo_abertura)
+                    linhas_abertura = conteudo_formatado.split('\n')
+                    
+                    paragrafo_atual = []
+                    for linha in linhas_abertura:
+                        if linha.strip():  # Linha com conteúdo
+                            if linha.startswith('#'):
+                                # Se há parágrafo acumulado, processar primeiro
+                                if paragrafo_atual:
+                                    paragrafo_texto = ' '.join(paragrafo_atual)
+                                    # Dividir parágrafos longos para evitar erros do ReportLab
+                                    paragrafos_divididos = split_long_paragraph(paragrafo_texto)
+                                    for p in paragrafos_divididos:
+                                        elements.append(Paragraph(p, styles['Normal']))
+                                        elements.append(Spacer(1, 3))
+                                    elements.append(Spacer(1, 3))
+                                    paragrafo_atual = []
+                                
+                                # Títulos
+                                titulo_clean = linha.replace('#', '').strip()
+                                if linha.startswith('###'):
+                                    elements.append(Paragraph(titulo_clean, styles['Heading3']))
+                                elif linha.startswith('##'):
+                                    elements.append(Paragraph(titulo_clean, styles['Heading2']))
+                                else:
+                                    elements.append(Paragraph(titulo_clean, graphic_title_style))
+                                elements.append(Spacer(1, 10))
+                            elif linha.strip() == '---':
+                                # Linha divisória
+                                if paragrafo_atual:
+                                    paragrafo_texto = ' '.join(paragrafo_atual)
+                                    # Dividir parágrafos longos para evitar erros do ReportLab
+                                    paragrafos_divididos = split_long_paragraph(paragrafo_texto)
+                                    for p in paragrafos_divididos:
+                                        elements.append(Paragraph(p, styles['Normal']))
+                                        elements.append(Spacer(1, 3))
+                                    elements.append(Spacer(1, 3))
+                                    paragrafo_atual = []
+                                elements.append(Spacer(1, 12))
+                            else:
+                                # Acumular linha no parágrafo atual
+                                paragrafo_atual.append(linha.strip())
+                        else:  # Linha vazia - indica fim do parágrafo
+                            if paragrafo_atual:
+                                paragrafo_texto = ' '.join(paragrafo_atual)
+                                # Dividir parágrafos longos para evitar erros do ReportLab
+                                paragrafos_divididos = split_long_paragraph(paragrafo_texto)
+                                for p in paragrafos_divididos:
+                                    elements.append(Paragraph(p, styles['Normal']))
+                                    elements.append(Spacer(1, 3))
+                                elements.append(Spacer(1, 3))
+                                paragrafo_atual = []
+                    
+                    # Processar último parágrafo se existir
+                    if paragrafo_atual:
+                        paragrafo_texto = ' '.join(paragrafo_atual)
+                        # Dividir parágrafos longos para evitar erros do ReportLab
+                        paragrafos_divididos = split_long_paragraph(paragrafo_texto)
+                        for p in paragrafos_divididos:
+                            elements.append(Paragraph(p, styles['Normal']))
+                            elements.append(Spacer(1, 3))
+                        elements.append(Spacer(1, 3))
+                    elements.append(Spacer(1, 20))
+                except Exception as e:
+                    elements.append(Paragraph(f"Erro ao carregar abertura: {str(e)}", styles['Normal']))
+                    
+                # 4. CARREGAR ANÁLISE DAS TOP 3 ÂNCORAS
+                posicoes = ["PRIMEIRA", "SEGUNDA", "TERCEIRA"]
+                for i, ancora in enumerate(top_3):
+                    elements.append(Paragraph(f"{posicoes[i]} ÂNCORA: {ancora['nome'].upper()}", graphic_title_style))
+                    elements.append(Paragraph(f"Pontuação: {ancora['valor_total']:.1f} pontos", styles['Normal']))
                     elements.append(Spacer(1, 10))
-                    elements.append(Table(
-                        [[dados_grafico_comportamento['image']]],
-                        colWidths=[graph_width],
-                        style=[('ALIGN', (0,0), (-1,-1), 'CENTER')]
-                    ))
+                    
+                    try:
+                        with open(ancora['arquivo'], 'r', encoding='utf-8') as f:
+                            conteudo_ancora = f.read()
+                        # Converter markdown para PDF (com formatação completa)
+                        try:
+                            conteudo_formatado = convert_markdown_to_html(conteudo_ancora)
+                        except Exception as e:
+                            conteudo_formatado = conteudo_ancora  # usar original sem formatação
+                        linhas_ancora = conteudo_formatado.split('\n')
+                        
+                        paragrafo_atual = []
+                        for linha in linhas_ancora:
+                            if linha.strip():  # Linha com conteúdo
+                                if linha.startswith('#'):
+                                    # Se há parágrafo acumulado, processar primeiro
+                                    if paragrafo_atual:
+                                        paragrafo_texto = ' '.join(paragrafo_atual)
+                                        # Dividir parágrafos longos para evitar erros do ReportLab
+                                        paragrafos_divididos = split_long_paragraph(paragrafo_texto)
+                                        for p in paragrafos_divididos:
+                                            try:
+                                                # Limpar texto antes de criar Paragraph
+                                                p_clean = clean_text_for_reportlab(p)
+                                                elements.append(Paragraph(p_clean, styles['Normal']))
+                                                elements.append(Spacer(1, 3))
+                                            except Exception as e:
+                                                # Usar versão simplificada sem formatação  
+                                                p_simple = clean_text_for_reportlab(p)  # A função já remove HTML
+                                                elements.append(Paragraph(p_simple, styles['Normal']))
+                                                elements.append(Spacer(1, 3))
+                                        elements.append(Spacer(1, 3))
+                                        paragrafo_atual = []
+                                    
+                                    # Títulos
+                                    titulo_clean = linha.replace('#', '').strip()
+                                    if linha.startswith('###'):
+                                        elements.append(Paragraph(titulo_clean, styles['Heading3']))
+                                    elif linha.startswith('##'):
+                                        elements.append(Paragraph(titulo_clean, styles['Heading2']))
+                                    else:
+                                        elements.append(Paragraph(titulo_clean, styles['Heading1']))
+                                    elements.append(Spacer(1, 8))
+                                elif linha.strip() == '---':
+                                    # Linha divisória
+                                    if paragrafo_atual:
+                                        paragrafo_texto = ' '.join(paragrafo_atual)
+                                        # Dividir parágrafos longos para evitar erros do ReportLab
+                                        paragrafos_divididos = split_long_paragraph(paragrafo_texto)
+                                        for p in paragrafos_divididos:
+                                            try:
+                                                # Limpar texto antes de criar Paragraph
+                                                p_clean = clean_text_for_reportlab(p)
+                                                elements.append(Paragraph(p_clean, styles['Normal']))
+                                                elements.append(Spacer(1, 3))
+                                            except Exception as e:
+                                                # Usar versão simplificada sem formatação  
+                                                p_simple = clean_text_for_reportlab(p)  # A função já remove HTML
+                                                elements.append(Paragraph(p_simple, styles['Normal']))
+                                                elements.append(Spacer(1, 3))
+                                        elements.append(Spacer(1, 3))
+                                        paragrafo_atual = []
+                                    elements.append(Spacer(1, 12))
+                                else:
+                                    # Acumular linha no parágrafo atual
+                                    paragrafo_atual.append(linha.strip())
+                            else:  # Linha vazia - indica fim do parágrafo
+                                if paragrafo_atual:
+                                    paragrafo_texto = ' '.join(paragrafo_atual)
+                                    # Dividir parágrafos longos para evitar erros do ReportLab
+                                    paragrafos_divididos = split_long_paragraph(paragrafo_texto)
+                                    for p in paragrafos_divididos:
+                                        elements.append(Paragraph(p, styles['Normal']))
+                                        elements.append(Spacer(1, 3))
+                                        
+                                    elements.append(Spacer(1, 3))
+                                    paragrafo_atual = []
+                        
+                        # Processar último parágrafo se existir
+                        if paragrafo_atual:
+                            paragrafo_texto = ' '.join(paragrafo_atual)
+                            # Dividir parágrafos longos para evitar erros do ReportLab
+                            paragrafos_divididos = split_long_paragraph(paragrafo_texto)
+                            for p in paragrafos_divididos:
+                                elements.append(Paragraph(p, styles['Normal']))
+                                elements.append(Spacer(1, 3))
+                                
+                            elements.append(Spacer(1, 3))
+                        
+                        elements.append(Spacer(1, 20))
+                    except Exception as e:
+                        elements.append(Paragraph(f"Erro ao carregar {ancora['nome']}: {str(e)}", styles['Normal']))
+                        elements.append(Spacer(1, 10))
+            else:
+                elements.append(Paragraph("Dados insuficientes para análise completa das âncoras", styles['Normal']))
 
             doc.build(elements)
             return buffer
@@ -977,12 +1495,12 @@ def show_results(tabela_escolhida: str, titulo_pagina: str, user_id: int):
                                 elif element[1] == 'call_dados':
                                     call_dados(cursor, element, tabela_escolhida)
         
-        # 5. Gerar e exibir a análise DISC
-        with st.expander("Clique aqui para ver sua Análise DISC de PERFIL", expanded=False):
+        # 5. Gerar e exibir análise de Âncoras de Carreira
+        with st.expander("Clique aqui para ver sua Análise de Âncoras de Carreira", expanded=False):
             st.markdown("---")
             
-            # Chama a função que gera e exibe a análise diretamente
-            analisar_perfil_disc_streamlit(cursor, user_id)
+            # Chama a função que gera e exibe a análise de âncoras
+            analisar_ancoras_carreira_streamlit(cursor, user_id)
             
             st.markdown("---")
 
@@ -1069,10 +1587,60 @@ def tabela_dados_sem_titulo(cursor, element):
     except Exception as e:
         st.error(f"Erro ao criar tabela: {str(e)}")
 
-def analisar_perfil_disc_streamlit(cursor, user_id):
+# Função DISC removida - Sistema agora é exclusivo para Âncoras de Carreira
+
+# FUNÇÕES DISC REMOVIDAS - Sistema agora exclusivo para Âncoras de Carreira
+# As funções analisar_perfil_disc_streamlit() e analisar_perfil_disc() foram removidas
+# def analisar_perfil_disc(cursor, user_id):  # FUNÇÃO REMOVIDA
+    # FUNÇÃO DISC REMOVIDA - Sistema agora é exclusivo para Âncoras de Carreira
+    pass
+
+# ===============================================================
+# FUNÇÕES DE ANÁLISE DE ÂNCORAS DE CARREIRA
+# ===============================================================
+
+def parse_br_number(value_str):
     """
-    Gera análise comportamental DISC na interface Streamlit.
-    FUNÇÃO LIMPA - Pronta para novas regras e conteúdo.
+    Converte string com formato brasileiro para float
+    """
+    if not value_str:
+        return 0.0
+    try:
+        # Remover espaços
+        clean_str = str(value_str).strip()
+        # Trocar vírgula por ponto
+        clean_str = clean_str.replace(',', '.')
+        return float(clean_str)
+    except:
+        return 0.0
+
+# Sistema refatorado - agora exclusivo para Âncoras de Carreira
+
+def buscar_valor_ancora(cursor, user_id, name_element):
+    """
+    Busca valor específico de uma âncora na tabela forms_resultados
+    """
+    try:
+        cursor.execute("""
+            SELECT value_element FROM forms_resultados
+            WHERE user_id = ? AND name_element = ?
+            LIMIT 1
+        """, (user_id, name_element))
+        
+        result = cursor.fetchone()
+        if result and result[0] is not None:
+            valor = parse_br_number(result[0])
+            # Correção para valores multiplicados por 1000
+            return valor / 1000 if valor >= 1000 else valor
+        return 0.0
+        
+    except Exception:
+        return 0.0
+
+def analisar_ancoras_carreira_streamlit(cursor, user_id):
+    """
+    Análise de Âncoras de Carreira com RANKING UNIFICADO
+    Combina valores P1 e P2 para criar ranking das 8 âncoras
     """
     try:
         # 1. Buscar dados do usuário
@@ -1083,109 +1651,115 @@ def analisar_perfil_disc_streamlit(cursor, user_id):
         """, (user_id,))
         usuario_info = cursor.fetchone()
         
-        # 2. Buscar gráfico DISC
-        tabela = st.session_state.tabela_escolhida
+        # 2. Definir mapeamento completo das âncoras (códigos corretos do banco)
+        # Cores do prisma/espectro para as 8 âncoras
+        mapeamento_ancoras = {
+            'C31': {
+                'nome': 'Competência Técnica / Funcional',
+                'descricao': 'Desenvolvimento de expertise técnica e especialização profissional',
+                'cor': '#FF0000',  # Vermelho
+                'arquivo': 'Conteudo/A1_Competencia_Tecnica.md'
+            },
+            'C32': {
+                'nome': 'Gestão Geral',
+                'descricao': 'Liderança, coordenação e responsabilidade gerencial',
+                'cor': '#FF8C00',  # Laranja
+                'arquivo': 'Conteudo/A2_Gestao_Geral.md'
+            },
+            'C33': {
+                'nome': 'Autonomia / Independência',
+                'descricao': 'Liberdade para tomar decisões e trabalhar independentemente',
+                'cor': '#FFD700',  # Amarelo
+                'arquivo': 'Conteudo/A3_Autonomia_Independencia.md'
+            },
+            'C34': {
+                'nome': 'Segurança / Estabilidade',
+                'descricao': 'Estabilidade financeira e segurança no emprego',
+                'cor': '#00FF00',  # Verde
+                'arquivo': 'Conteudo/A4_Seguranca_Estabilidade.md'
+            },
+            'D31': {
+                'nome': 'Criatividade Empreendedora',
+                'descricao': 'Inovação, criação de novos produtos e empreendedorismo',
+                'cor': '#0080FF',  # Azul
+                'arquivo': 'Conteudo/A5_Criatividade_Empreendedora.md'
+            },
+            'D32': {
+                'nome': 'Serviço / Dedicação',
+                'descricao': 'Contribuição para a sociedade e ajuda aos outros',
+                'cor': '#4B0082',  # Índigo
+                'arquivo': 'Conteudo/A6_Servico_Dedicacao.md'
+            },
+            'D33': {
+                'nome': 'Estilo de Vida',
+                'descricao': 'Equilíbrio entre vida pessoal e profissional',
+                'cor': '#8A2BE2',  # Violeta
+                'arquivo': 'Conteudo/A7_Estilo_Vida.md'
+            },
+            'D34': {
+                'nome': 'Desafio Puro',
+                'descricao': 'Busca por desafios complexos e competição',
+                'cor': '#FF1493',  # Rosa/Pink
+                'arquivo': 'Conteudo/A8_Desafio_Puro.md'
+            }
+        }
         
-        # Busca por títulos DISC
-        titulos_busca = [
-            '%RESULTADOS DE PERFIS%',
-            '%PESQUISA COMPORTAMENTAL%', 
-            '%COMPORTAMENTAL%',
-            '%PERFIL%',
-            '%DISC%'
-        ]
+        # 3. Buscar valores das âncoras para criar ranking
+        # USAR TABELA ESPECÍFICA: forms_resultados
+        tabela = 'forms_resultados'
         
-        result = None
-        titulo_grafico_usado = ""
-        for titulo in titulos_busca:
-            cursor.execute(f"""
-                SELECT select_element, str_element, msg_element
-                FROM {tabela}
-                WHERE user_id = ? AND type_element = 'grafico' AND msg_element LIKE ?
+        codigos_ancoras = list(mapeamento_ancoras.keys())
+        ranking_ancoras = []
+        
+        for codigo in codigos_ancoras:
+            # Usar a mesma lógica da função tabela_dados que funciona
+            cursor.execute("""
+                SELECT value_element 
+                FROM forms_resultados 
+                WHERE name_element = ? 
+                AND user_id = ?
+                ORDER BY ID_element DESC
                 LIMIT 1
-            """, (user_id, titulo))
+            """, (codigo.strip(), user_id))
+            
             result = cursor.fetchone()
-            if result and result[0] and result[1]:
-                titulo_grafico_usado = titulo
-                break
+            valor_total = parse_br_number(result[0]) if result and result[0] is not None else 0.0
+            
+
+            
+            # Adicionar ao ranking
+            ranking_ancoras.append({
+                'codigo': codigo,
+                'nome': mapeamento_ancoras[codigo]['nome'],
+                'descricao': mapeamento_ancoras[codigo]['descricao'],
+                'valor_total': valor_total,
+                'cor': mapeamento_ancoras[codigo]['cor'],
+                'arquivo': mapeamento_ancoras[codigo]['arquivo']
+            })
         
-        # Fallback: busca qualquer gráfico com 4 elementos
-        if not result or not result[0] or not result[1]:
-            cursor.execute(f"""
-                SELECT select_element, str_element, msg_element
-                FROM {tabela}
-                WHERE user_id = ? AND type_element = 'grafico'
-                AND select_element IS NOT NULL 
-                AND str_element IS NOT NULL
-                AND LENGTH(select_element) - LENGTH(REPLACE(select_element, '|', '')) = 3
-                LIMIT 1
-            """, (user_id,))
-            result = cursor.fetchone()
-            titulo_grafico_usado = "Gráfico com 4 elementos encontrado"
+        # 4. Ordenar ranking por valor total (maior para menor)
+        ranking_ancoras.sort(key=lambda x: x['valor_total'], reverse=True)
         
-        # Validação: se não encontrou dados DISC
-        if not result or not result[0] or not result[1]:
-            st.markdown("## ⚠️ Análise DISC não disponível")
+        # 5. Validar se existem dados suficientes
+        valores_validos = [a for a in ranking_ancoras if a['valor_total'] > 0]
+        
+        if len(valores_validos) < 3:
+            st.markdown("## ⚠️ Análise de Âncoras de Carreira não disponível")
             st.markdown("### 👤 Informações do Usuário:")
             if usuario_info:
                 st.markdown(f"**Nome:** {usuario_info[0] or 'Não informado'}")
                 st.markdown(f"**Email:** {usuario_info[1] or 'Não informado'}")
                 st.markdown(f"**Empresa:** {usuario_info[2] or 'Não informado'}")
-            st.markdown("**Problema:** Dados DISC não encontrados para este usuário.")
+            st.markdown(f"**Problema:** Dados insuficientes. Encontrados apenas {len(valores_validos)} âncoras com valores.")
+            st.markdown("**Solução:** Complete as avaliações de Âncoras P1 e P2 para gerar os resultados.")
+            st.markdown("---")
+            st.info("💡 **Informação:** Este sistema analisa exclusivamente Âncoras de Carreira, oferecendo uma avaliação completa das suas motivações e valores profissionais.")
             return
-
-        # 3. Processar elementos DISC
-        name_elements = [name.strip() for name in result[0].split('|')]
-        labels = [label.strip() for label in result[1].split('|')]
-        titulo_grafico = result[2] if result[2] else "Gráfico DISC"
         
-        # 4. Mapear perfis D,I,S,C
-        profile_map = {}
-        for name, label in zip(name_elements, labels):
-            if '(' in label and ')' in label:
-                letra_parenteses = label[label.find('(')+1:label.find(')')].upper()
-                if letra_parenteses in ['D', 'I', 'S', 'C']:
-                    profile_map[name] = letra_parenteses
-            else:
-                first_letter = label[0].upper() if label else ''
-                if first_letter in ['D', 'I', 'S', 'C']:
-                    profile_map[name] = first_letter
-
-        # 5. Obter valores DISC do usuário
-        placeholders = ','.join('?' for _ in name_elements)
-        cursor.execute(f"""
-            SELECT name_element, value_element
-            FROM {tabela}
-            WHERE user_id = ? AND name_element IN ({placeholders})
-        """, (user_id, *name_elements))
-        resultados_disc_raw = cursor.fetchall()
+        # 6. EXIBIR ANÁLISE COMPLETA
+        st.markdown("## ⚓ Análise de Âncoras de Carreira")
         
-        if not resultados_disc_raw:
-            st.markdown("## ⚠️ Dados DISC não encontrados")
-            st.markdown("**Problema:** Valores DISC não calculados para este usuário.")
-            return
-
-        # 6. Construir perfil DISC
-        perfil = {profile_map.get(name, name): float(value if value is not None else 0.0) 
-                 for name, value in resultados_disc_raw}
-        perfil = {k: v for k, v in perfil.items() if k}  # Remove chaves vazias
-
-        if len(perfil) < 2:
-            st.markdown("## ⚠️ Dados DISC insuficientes")
-            st.markdown(f"**Problema:** Apenas {len(perfil)} perfis encontrados. Necessário pelo menos 2.")
-            return
-
-        # 7. Definir perfis primário e secundário
-        perfil_ordenado = sorted(perfil.items(), key=lambda item: item[1], reverse=True)
-        perfil_primario, valor_primario = perfil_ordenado[0]
-        perfil_secundario, valor_secundario = perfil_ordenado[1] if len(perfil_ordenado) > 1 else ('', 0)
-
-        # ===== PASSO 2: CÁLCULO DE VARIÁVEIS HÍBRIDAS =====
-        
-        st.markdown("## 📊 Análise Comportamental DISC")
-        st.markdown("### 👤 Informações do Participante")
-        
-        # Exibir dados do usuário
+        # Informações do usuário
         if usuario_info:
             info_html = f"""
             <div style='background-color: #f0f8ff; padding: 15px; margin: 15px 0; border-radius: 8px; border-left: 4px solid #0066cc;'>
@@ -1198,625 +1772,213 @@ def analisar_perfil_disc_streamlit(cursor, user_id):
             """
             st.markdown(info_html, unsafe_allow_html=True)
         
-        # Buscar valores para cálculo das variáveis híbridas
-        elementos_busca = ['C31', 'D31', 'C32', 'D32', 'C33', 'D33', 'C34', 'D34']
-        valores_elementos = {}
+        # 7. RANKING COMPLETO DAS 8 ÂNCORAS
+        st.markdown("### 🏆 Ranking Completo das Âncoras de Carreira")
+        st.markdown("*Valores das âncoras de carreira*")
         
-        for elemento in elementos_busca:
-            cursor.execute(f"""
-                SELECT value_element
-                FROM {tabela}
-                WHERE user_id = ? AND name_element = ?
-                LIMIT 1
-            """, (user_id, elemento))
-            result = cursor.fetchone()
-            if result and result[0] is not None:
-                # Converter formato brasileiro para float
-                valor_convertido = parse_br_number(result[0])
-                
-                # Aplicar correção se valor estiver multiplicado por 1000
-                if valor_convertido >= 1000:
-                    valores_elementos[elemento] = valor_convertido / 1000
-                else:
-                    valores_elementos[elemento] = valor_convertido
-            else:
-                valores_elementos[elemento] = 0.0
-        
-        # Calcular variáveis híbridas
-        variaveis_hibridas = []
-        
-        # Dominância Híbrida = (C31 + D31) / 2
-        dominancia_hibrida = (valores_elementos['C31'] + valores_elementos['D31']) / 2
-        variaveis_hibridas.append({
-            'dimensao': 'Dominância',
-            'letra': 'D',
-            'valor_hibrido': dominancia_hibrida,
-            'perfil': valores_elementos['C31'],
-            'comportamento': valores_elementos['D31']
-        })
-        
-        # Influência Híbrida = (C32 + D32) / 2
-        influencia_hibrida = (valores_elementos['C32'] + valores_elementos['D32']) / 2
-        variaveis_hibridas.append({
-            'dimensao': 'Influência',
-            'letra': 'I',
-            'valor_hibrido': influencia_hibrida,
-            'perfil': valores_elementos['C32'],
-            'comportamento': valores_elementos['D32']
-        })
-        
-        # Estabilidade Híbrida = (C33 + D33) / 2
-        estabilidade_hibrida = (valores_elementos['C33'] + valores_elementos['D33']) / 2
-        variaveis_hibridas.append({
-            'dimensao': 'Estabilidade',
-            'letra': 'S',
-            'valor_hibrido': estabilidade_hibrida,
-            'perfil': valores_elementos['C33'],
-            'comportamento': valores_elementos['D33']
-        })
-        
-        # Conformidade Híbrida = (C34 + D34) / 2
-        conformidade_hibrida = (valores_elementos['C34'] + valores_elementos['D34']) / 2
-        variaveis_hibridas.append({
-            'dimensao': 'Conformidade',
-            'letra': 'C',
-            'valor_hibrido': conformidade_hibrida,
-            'perfil': valores_elementos['C34'],
-            'comportamento': valores_elementos['D34']
-        })
-        
-        # Ordenar por valor híbrido (maior para menor)
-        variaveis_hibridas.sort(key=lambda x: x['valor_hibrido'], reverse=True)
-        
-        # Renderizar tabela de variáveis híbridas
-        st.markdown("### 🔄 Variáveis Híbridas DISC")
-        st.markdown("*Média balanceada entre Perfil e Comportamento*")
-        
-        # Preparar dados para DataFrame
-        import pandas as pd
-        
-        dados_tabela = []
-        for i, variavel in enumerate(variaveis_hibridas):
+        # Preparar dados para tabela
+        dados_ranking = []
+        for i, ancora in enumerate(ranking_ancoras):
             posicao = f"{i+1}º"
+            valor_total_br = f"{ancora['valor_total']:.1f}".replace('.', ',')
             
-            # Formatação brasileira com 1 casa decimal (valores já corrigidos na origem)
-            valor_hibrido_br = f"{variavel['valor_hibrido']:.1f}".replace('.', ',')
-            perfil_br = f"{variavel['perfil']:.1f}".replace('.', ',')
-            comportamento_br = f"{variavel['comportamento']:.1f}".replace('.', ',')
-            
-            dados_tabela.append({
+            dados_ranking.append({
                 'Posição': posicao,
-                'Dimensão DISC': f"{variavel['letra']} - {variavel['dimensao']}",
-                'Valor Híbrido': valor_hibrido_br,
-                'Perfil': perfil_br,
-                'Comportamento': comportamento_br
+                'Âncora de Carreira': ancora['nome'],
+                'Valor Total': valor_total_br,
+                'Descrição': ancora['descricao']
             })
         
         # Criar DataFrame
-        df_hibridas = pd.DataFrame(dados_tabela)
+        df_ranking = pd.DataFrame(dados_ranking)
         
-        # Criar colunas para centralizar
-        col1, col2, col3 = st.columns([1, 8, 1])
+        # Exibir tabela completa
+        st.dataframe(
+            df_ranking,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Posição": st.column_config.TextColumn(
+                    "Posição",
+                    width="small",
+                ),
+                "Âncora de Carreira": st.column_config.TextColumn(
+                    "Âncora de Carreira",
+                    width="medium",
+                ),
+                "Valor Total": st.column_config.TextColumn(
+                    "Valor Total",
+                    width="small",
+                ),
+                "Descrição": st.column_config.TextColumn(
+                    "Descrição",
+                    width="large",
+                ),
+            }
+        )
         
-        with col2:
-            # Exibir tabela usando Streamlit dataframe
-            st.dataframe(
-                df_hibridas,
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                    "Posição": st.column_config.TextColumn(
-                        "Posição",
-                        width="small",
-                    ),
-                    "Dimensão DISC": st.column_config.TextColumn(
-                        "Dimensão DISC",
-                        width="medium",
-                    ),
-                    "Valor Híbrido": st.column_config.TextColumn(
-                        "Valor Híbrido",
-                        width="small",
-                    ),
-                    "Perfil": st.column_config.TextColumn(
-                        "Perfil", 
-                        width="small",
-                    ),
-                    "Comportamento": st.column_config.TextColumn(
-                        "Comportamento",
-                        width="small",
-                    ),
-                }
-            )
+        # 8. ANÁLISE DAS TOP 3 ÂNCORAS
+        top_3 = ranking_ancoras[:3]
         
-
+        st.markdown("### 🎯 Suas 3 Âncoras Principais")
         
-        # ===== FIM DO PASSO 2 =====
-
-        # ===== PASSO 3: ANÁLISE DE PERFIL ÚNICO OU COMBINADO =====
-        
-        st.markdown("---")
-        st.markdown("### 🔍 Análise Comportamental Detalhada")
-        
-        # Calcular diferença entre primário e secundário
-        if len(variaveis_hibridas) >= 2:
-            primario = variaveis_hibridas[0]
-            secundario = variaveis_hibridas[1]
-            diferenca = primario['valor_hibrido'] - secundario['valor_hibrido']
-            
-            # Determinar tipo de perfil e arquivo correspondente
-            if diferenca > 5:
-                # PERFIL ÚNICO
-                tipo_perfil = "ÚNICO"
-                letra_primaria = primario['letra']
-                
-                # Mapear arquivo baseado no perfil primário
-                arquivos_unicos = {
-                    'D': 'Conteudo/1_D_Dominancia.md',
-                    'I': 'Conteudo/1_I_Influencia.md', 
-                    'S': 'Conteudo/1_S_Estabilidade.md',
-                    'C': 'Conteudo/1_C_Conformidade.md'
-                }
-                
-                arquivo_analise = arquivos_unicos.get(letra_primaria)
-                titulo_analise = f"Perfil {tipo_perfil}: {primario['dimensao']}"
-                
-            else:
-                # PERFIL COMBINADO
-                tipo_perfil = "COMBINADO"
-                letra_primaria = primario['letra']
-                letra_secundaria = secundario['letra']
-                combinacao = f"{letra_primaria}{letra_secundaria}"
-                
-                # Mapear arquivo baseado na combinação
-                arquivos_combinados = {
-                    'DC': 'Conteudo/21_DC_DOMINANCIA_CONFORMIDADE.md',
-                    'DI': 'Conteudo/22_DI_DOMINANCIA_INFLUENCIA.md',
-                    'ID': 'Conteudo/23_ID_INFLUENCIA_DOMINANCIA.md',
-                    'IS': 'Conteudo/24_IS_INFLUENCIA_ESTABILIDADE.md',
-                    'SI': 'Conteudo/25_SI_ESTABILIDADE_INFLUENCIA.md',
-                    'SC': 'Conteudo/26_SC_ESTABILIDADE_CONFORMIDADE.md',
-                    'CD': 'Conteudo/27_CD_CONFORMIDADE_DOMINANCIA.md'
-                }
-                
-                arquivo_analise = arquivos_combinados.get(combinacao)
-                titulo_analise = f"Perfil {tipo_perfil}: {primario['dimensao']} + {secundario['dimensao']}"
-            
-            # Exibir informações do tipo de perfil
-            info_perfil_html = f"""
-            <div style='background-color: #fff3cd; padding: 15px; margin: 15px 0; border-radius: 8px; border-left: 4px solid #ffc107;'>
-                <p style='margin: 0; font-size: 16px; color: #856404;'>
-                    <strong>📊 Tipo de Perfil:</strong> {tipo_perfil}<br>
-                    <strong>📈 Diferença Primário-Secundário:</strong> {diferenca:.1f} pontos<br>
-                    <strong>📋 Critério:</strong> {'Diferença > 5 pontos = Perfil Único' if diferenca > 5 else 'Diferença ≤ 5 pontos = Perfil Combinado'}
-                </p>
-            </div>
-            """
-            st.markdown(info_perfil_html, unsafe_allow_html=True)
-            
-            # Tentar ler e exibir o conteúdo do arquivo
-            if arquivo_analise:
-                try:
-                    with open(arquivo_analise, 'r', encoding='utf-8') as f:
-                        conteudo_analise = f.read()
-                    
-                    # Exibir título da análise
-                    st.markdown(f"## 📖 {titulo_analise}")
-                    
-                    # Exibir todo o conteúdo do arquivo markdown
-                    st.markdown(conteudo_analise, unsafe_allow_html=True)
-                    
-                except FileNotFoundError:
-                    st.error(f"❌ **Arquivo não encontrado:** {arquivo_analise}")
-                    st.error("Verifique se o arquivo existe na pasta 'Conteudo' do projeto.")
-                    
-                except Exception as e:
-                    st.error(f"❌ **Erro ao ler arquivo:** {str(e)}")
-            else:
-                # Combinação não encontrada
-                st.error("❌ **COMBINAÇÃO DE PERFIL INDEFINIDO - AVISAR O CONSULTOR DO PROJETO**")
-                st.error(f"Combinação não mapeada: {letra_primaria}/{letra_secundaria}")
-        else:
-            st.error("❌ **Dados insuficientes:** Necessário pelo menos 2 variáveis híbridas para análise.")
-        
-        # ===== FIM DO PASSO 3 =====
-
-    except Exception as e:
-        st.error(f"Erro na análise DISC: {str(e)}")
-
-def analisar_perfil_disc(cursor, user_id):
-    """
-    Realiza uma análise completa do perfil DISC do usuário dividida em 2 blocos:
-    1. Análise do Perfil - características, pontos fortes e limitações
-    2. Análise do Comportamento - manifestações práticas e desenvolvimento
-
-    A base de conhecimento deve ser estruturada com as seguintes tags:
-    - <Perfis_Individuais>...</Perfis_Individuais>
-    - <Perfis_Combinados>...</Perfis_Combinados>
-    - <Excesso_Pontos_Fortes>...</Excesso_Pontos_Fortes>
-    - <Caminhos_Aperfeiçoamento>...</Caminhos_Aperfeiçoamento>
-
-    Args:
-        cursor: Cursor do banco de dados.
-        user_id (int): ID do usuário.
-
-    Returns:
-        str: Uma string formatada em Markdown com a análise completa.
-    """
-    try:
-        # 1. Buscar dados do usuário primeiro
-        cursor.execute("""
-            SELECT u.nome, u.email, u.empresa 
-            FROM usuarios u 
-            WHERE u.user_id = ?
-        """, (user_id,))
-        usuario_info = cursor.fetchone()
-        
-        # 2. Encontrar o gráfico de resultados DISC - busca mais ampla
-        tabela = st.session_state.tabela_escolhida
-        
-        # Primeiro tenta buscar por diferentes títulos possíveis
-        titulos_busca = [
-            '%RESULTADOS DE PERFIS%',
-            '%PESQUISA COMPORTAMENTAL%', 
-            '%COMPORTAMENTAL%',
-            '%PERFIL%',
-            '%DISC%'
-        ]
-        
-        result = None
-        titulo_grafico_usado = ""
-        for titulo in titulos_busca:
-            cursor.execute(f"""
-                SELECT select_element, str_element, msg_element
-                FROM {tabela}
-                WHERE user_id = ? AND type_element = 'grafico' AND msg_element LIKE ?
-                LIMIT 1
-            """, (user_id, titulo))
-            result = cursor.fetchone()
-            if result and result[0] and result[1]:
-                titulo_grafico_usado = titulo
-                break
-        
-        # Se não encontrou por título, busca qualquer gráfico com 4 elementos (D,I,S,C)
-        if not result or not result[0] or not result[1]:
-            cursor.execute(f"""
-                SELECT select_element, str_element, msg_element
-                FROM {tabela}
-                WHERE user_id = ? AND type_element = 'grafico'
-                AND select_element IS NOT NULL 
-                AND str_element IS NOT NULL
-                AND LENGTH(select_element) - LENGTH(REPLACE(select_element, '|', '')) = 3
-                LIMIT 1
-            """, (user_id,))
-            result = cursor.fetchone()
-            titulo_grafico_usado = "Gráfico com 4 elementos encontrado"
-        
-        if not result or not result[0] or not result[1]:
-            # Se ainda não encontrou, busca todos os elementos disponíveis para debug
-            cursor.execute(f"""
-                SELECT name_element, value_element, msg_element
-                FROM {tabela}
-                WHERE user_id = ? AND value_element IS NOT NULL
-                ORDER BY name_element
-                LIMIT 10
-            """, (user_id,))
-            elementos_debug = cursor.fetchall()
-            
-            debug_info = "<br>".join([f"- {elem[0]}: {elem[1]} ({elem[2] or 'sem título'})" for elem in elementos_debug])
-            
-            return f"""
-            ## ⚠️ Análise DISC não disponível
-            
-            ### 👤 Informações do Usuário:
-            **Nome:** {usuario_info[0] if usuario_info and usuario_info[0] else 'Não informado'}<br>
-            **Email:** {usuario_info[1] if usuario_info and usuario_info[1] else 'Não informado'}<br>
-            **Empresa:** {usuario_info[2] if usuario_info and usuario_info[2] else 'Não informado'}
-            
-            ### 📊 Problema encontrado:
-            Não foi possível localizar o gráfico DISC na tabela `{tabela}` para o usuário {user_id}.
-            
-            ### 🔍 Elementos encontrados na tabela:
-            {debug_info if debug_info else "Nenhum elemento encontrado"}
-            
-            **Solução:** Verifique se os dados DISC foram calculados corretamente ou se a configuração do gráfico está presente na tabela `{tabela}`.
-            """
-
-        name_elements = [name.strip() for name in result[0].split('|')]
-        labels = [label.strip() for label in result[1].split('|')]
-        titulo_grafico = result[2] if result[2] else "Gráfico DISC"
-        
-        # Cria mapeamento baseado nos rótulos DISC
-        profile_map = {}
-        for name, label in zip(name_elements, labels):
-            # Procura pela letra DISC nos parênteses primeiro
-            if '(' in label and ')' in label:
-                letra_parenteses = label[label.find('(')+1:label.find(')')].upper()
-                if letra_parenteses in ['D', 'I', 'S', 'C']:
-                    profile_map[name] = letra_parenteses
-            else:
-                # Fallback: primeira letra do label
-                first_letter = label[0].upper() if label else ''
-                if first_letter in ['D', 'I', 'S', 'C']:
-                    profile_map[name] = first_letter
-
-        # Debug temporário: Vamos ver o mapeamento atual
-        st.write("🔍 **Debug - Mapeamento encontrado:**")
-        st.write(f"name_elements: {name_elements}")
-        st.write(f"labels: {labels}")
-        st.write(f"profile_map: {profile_map}")
-        st.write("---")
-
-        # 3. Obter os valores DISC do usuário
-        placeholders = ','.join('?' for _ in name_elements)
-        cursor.execute(f"""
-            SELECT name_element, value_element
-            FROM {tabela}
-            WHERE user_id = ? AND name_element IN ({placeholders})
-        """, (user_id, *name_elements))
-        resultados_disc_raw = cursor.fetchall()
-        
-        if not resultados_disc_raw:
-            return f"""
-            ## ⚠️ Dados DISC não encontrados
-            
-            ### 👤 Informações do Usuário:
-            **Nome:** {usuario_info[0] if usuario_info and usuario_info[0] else 'Não informado'}<br>
-            **Email:** {usuario_info[1] if usuario_info and usuario_info[1] else 'Não informado'}<br>
-            **Empresa:** {usuario_info[2] if usuario_info and usuario_info[2] else 'Não informado'}
-            
-            ### 📊 Problema:
-            Encontrado gráfico "{titulo_grafico}" mas não há valores calculados para os elementos: {', '.join(name_elements)}
-            
-            **Solução:** Complete a avaliação DISC para gerar os resultados.
-            """
-
-        perfil = {profile_map.get(name, name): float(value if value is not None else 0.0) for name, value in resultados_disc_raw}
-        perfil = {k: v for k, v in perfil.items() if k}  # Remove chaves vazias
-
-        if len(perfil) < 2:
-            return f"""
-            ## ⚠️ Dados DISC insuficientes
-            
-            ### 👤 Informações do Usuário:
-            **Nome:** {usuario_info[0] if usuario_info and usuario_info[0] else 'Não informado'}<br>
-            **Email:** {usuario_info[1] if usuario_info and usuario_info[1] else 'Não informado'}<br>
-            **Empresa:** {usuario_info[2] if usuario_info and usuario_info[2] else 'Não informado'}
-            
-            ### 📊 Dados encontrados:
-            {', '.join([f'{k}: {v}' for k, v in perfil.items()])}
-            
-            **Problema:** Apenas {len(perfil)} perfis encontrados. Necessário pelo menos 2 para análise.
-            """
-
-        # 4. Ler e parsear a base de conhecimento
-        try:
-            with open('base_conhecimento_disc.md', 'r', encoding='utf-8') as f:
-                base_conhecimento = f.read()
-        except FileNotFoundError:
-            st.error("Arquivo 'base_conhecimento_disc.md' não encontrado.")
-            return "Análise não disponível: arquivo de conhecimento ausente."
-
-        secoes = {}
-        tags = {
-            "individuais": ("<Perfis_Individuais>", "</Perfis_Individuais>"),
-            "combinados": ("<Perfis_Combinados>", "</Perfis_Combinados>"),
-            "excesso": ("<Excesso_Pontos_Fortes>", "</Excesso_Pontos_Fortes>"),
-            "aperfeicoamento": ("<Caminhos_Aperfeiçoamento>", "</Caminhos_Aperfeiçoamento>")
-        }
-        for nome, (inicio_tag, fim_tag) in tags.items():
-            inicio = base_conhecimento.find(inicio_tag)
-            fim = base_conhecimento.find(fim_tag, inicio)
-            if inicio != -1 and fim != -1:
-                secoes[nome] = base_conhecimento[inicio + len(inicio_tag):fim].strip()
-            else:
-                secoes[nome] = ""
-
-        # 5. Definir perfis primário e secundário
-        perfil_ordenado = sorted(perfil.items(), key=lambda item: item[1], reverse=True)
-        perfil_primario, valor_primario = perfil_ordenado[0]
-        perfil_secundario, valor_secundario = perfil_ordenado[1] if len(perfil_ordenado) > 1 else ('', 0)
-
-        # 6. Helper para extrair conteúdo
-        def extrair_conteudo(secao_texto, chaves_busca):
-            for chave in chaves_busca:
-                inicio = secao_texto.find(chave)
-                if inicio != -1:
-                    fim = secao_texto.find('###', inicio + len(chave))
-                    conteudo_bloco = secao_texto[inicio:fim if fim != -1 else len(secao_texto)].strip()
-                    # Retorna o conteúdo APÓS a linha de chave (ex: "### D")
-                    return conteudo_bloco.split('\n', 1)[1].strip() if '\n' in conteudo_bloco else ""
-            return ""
-
-        def formatar_tabela_html(raw_text, title):
-            """
-            Formata um texto com estrutura de tabela (cabeçalho e linhas separadas
-            por quebras de linha, colunas por '|') em uma tabela HTML estilizada.
-            """
-            if not raw_text or '|' not in raw_text:
-                return f"<h4>{title}</h4><p>{raw_text}</p>" if raw_text else ""
-
-            lines = [line.strip() for line in raw_text.split('\n') if line.strip()]
-            if not lines or len(lines) < 2:
-                return f"<h4>{title}</h4><p>{raw_text}</p>"
-
-            header_cols = [h.strip() for h in lines[0].split('|')]
-            if not header_cols:
-                return f"<h4>{title}</h4><p>{raw_text}</p>"
-
-            html = f"<br><h4>{title}</h4>"
-            html += "<div style='font-size: 16px; width: 95%; margin: 0 auto;'>"
-            html += "<table style='width: 100%; border-collapse: separate; border-spacing: 0; border-radius: 10px; overflow: hidden; box-shadow: 0 0 8px rgba(0,0,0,0.1);'>"
-            
-            html += "<thead><tr style='background-color: #e8f5e9;'>"
-            for col_title in header_cols:
-                html += f"<th style='text-align: left; padding: 12px; border-bottom: 2px solid #dee2e6;'>{col_title}</th>"
-            html += "</tr></thead>"
-            
-            html += "<tbody>"
-            row_data = lines[1:]
-            for i, row_str in enumerate(row_data):
-                cols = [c.strip() for c in row_str.split('|')]
-                if len(cols) == len(header_cols):
-                    bg_color_style = "background-color: #f8f9fa;" if i % 2 else "background-color: #ffffff;"
-                    html += f"<tr style='{bg_color_style}'>"
-                    for col_data in cols:
-                        html += f"<td style='padding: 10px 12px; border-bottom: 1px solid #dee2e6;'>{col_data}</td>"
-                    html += "</tr>"
-            html += "</tbody></table></div>"
-            return html
-
-        # ===== INÍCIO DA MONTAGEM DA ANÁLISE =====
-        
-        # CABEÇALHO PRINCIPAL
-        analise = f"## 📊 Análise Comportamental DISC\n\n"
-        
-        # DADOS DO USUÁRIO
-        analise += f"### 👤 Informações do Participante\n\n"
-        if usuario_info:
-            analise += f"""
-            <div style='background-color: #f0f8ff; padding: 15px; margin: 15px 0; border-radius: 8px; border-left: 4px solid #0066cc;'>
-                <p style='margin: 0; font-size: 16px;'>
-                    <strong>👤 Nome:</strong> {usuario_info[0] or 'Não informado'}<br>
-                    <strong>📧 Email:</strong> {usuario_info[1] or 'Não informado'}<br>
-                    <strong>🏢 Empresa:</strong> {usuario_info[2] or 'Não informado'}
-                </p>
-            </div>
-            """
-        
-        # DADOS DA AVALIAÇÃO - Tabela com pontuações
-        analise += f"### 📈 Resultados da sua Avaliação DISC\n\n"
-        analise += f"*Baseado no gráfico: {titulo_grafico}* | *Busca: {titulo_grafico_usado}*\n\n"
-        
-        # Criar tabela HTML com os resultados
-        dados_avaliacao = f"""
-        <div style='font-size: 16px; width: 90%; margin: 20px auto;'>
-            <table style='width: 100%; border-collapse: separate; border-spacing: 0; border-radius: 10px; overflow: hidden; box-shadow: 0 0 8px rgba(0,0,0,0.1);'>
-                <thead>
-                    <tr style='background-color: #e3f2fd;'>
-                        <th style='text-align: center; padding: 12px; border-bottom: 2px solid #1976d2; color: #1976d2; font-weight: bold;'>Perfil DISC</th>
-                        <th style='text-align: center; padding: 12px; border-bottom: 2px solid #1976d2; color: #1976d2; font-weight: bold;'>Pontuação</th>
-                        <th style='text-align: center; padding: 12px; border-bottom: 2px solid #1976d2; color: #1976d2; font-weight: bold;'>Posição</th>
-                    </tr>
-                </thead>
-                <tbody>
-        """
-        
-        # Adicionar linhas da tabela ordenadas por pontuação
-        nomes_perfis = {'D': 'Dominante', 'I': 'Influente', 'S': 'Estável', 'C': 'Conforme'}
-        for i, (letra, valor) in enumerate(perfil_ordenado):
-            if i == 0:
-                destaque = "background-color: #fff3e0; font-weight: bold; color: #f57c00;"
-                posicao = "1º - Primário"
-            elif i == 1:
-                destaque = "background-color: #f3e5f5; font-weight: bold; color: #7b1fa2;"
-                posicao = "2º - Secundário"
-            else:
-                destaque = "background-color: #f5f5f5;"
-                posicao = f"{i+1}º"
-            
-            nome_completo = nomes_perfis.get(letra, letra)
-            
-            dados_avaliacao += f"""
-                    <tr style='{destaque}'>
-                        <td style='text-align: center; padding: 10px 12px; border-bottom: 1px solid #dee2e6;'>{letra} - {nome_completo}</td>
-                        <td style='text-align: center; padding: 10px 12px; border-bottom: 1px solid #dee2e6;'>{valor:.1f}</td>
-                        <td style='text-align: center; padding: 10px 12px; border-bottom: 1px solid #dee2e6;'>{posicao}</td>
-                    </tr>
-            """
-        
-        dados_avaliacao += """
-                </tbody>
-            </table>
-        </div>
-        """
-        
-        analise += dados_avaliacao
-        
-        # Resumo do perfil identificado
-        analise += f"""
-        <div style='background-color: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 10px; border-left: 5px solid #007bff;'>
-            <h4 style='color: #007bff; margin: 0 0 10px 0;'>🎯 Seu Perfil Identificado</h4>
-            <p style='font-size: 18px; margin: 0; color: #495057;'>
-                <strong>Perfil Principal:</strong> {perfil_primario} - {nomes_perfis.get(perfil_primario, perfil_primario)} ({valor_primario:.1f} pontos)<br>
-                {f"<strong>Perfil Secundário:</strong> {perfil_secundario} - {nomes_perfis.get(perfil_secundario, perfil_secundario)} ({valor_secundario:.1f} pontos)<br>" if perfil_secundario else ""}
-                <strong>Combinação:</strong> {perfil_primario}{f"/{perfil_secundario}" if perfil_secundario else ""}
+        # Box com as top 3
+        top_3_html = f"""
+        <div style='background-color: #e8f5e8; padding: 20px; margin: 15px 0; border-radius: 8px; border-left: 4px solid #28a745;'>
+            <h4 style='margin-top: 0; color: #155724;'>🏆 Suas Âncoras Mais Fortes:</h4>
+            <p style='margin: 5px 0; font-size: 16px; color: #155724;'>
+                <strong>🥇 1ª Lugar:</strong> {top_3[0]['nome']} 
+                <span style='background-color: #28a745; color: white; padding: 2px 8px; border-radius: 4px; font-size: 14px;'>
+                    {top_3[0]['valor_total']:.1f} pontos
+                </span>
+            </p>
+            <p style='margin: 5px 0; font-size: 16px; color: #155724;'>
+                <strong>🥈 2ª Lugar:</strong> {top_3[1]['nome']} 
+                <span style='background-color: #6c757d; color: white; padding: 2px 8px; border-radius: 4px; font-size: 14px;'>
+                    {top_3[1]['valor_total']:.1f} pontos
+                </span>
+            </p>
+            <p style='margin: 5px 0; font-size: 16px; color: #155724;'>
+                <strong>🥉 3ª Lugar:</strong> {top_3[2]['nome']} 
+                <span style='background-color: #fd7e14; color: white; padding: 2px 8px; border-radius: 4px; font-size: 14px;'>
+                    {top_3[2]['valor_total']:.1f} pontos
+                </span>
             </p>
         </div>
         """
+        st.markdown(top_3_html, unsafe_allow_html=True)
         
-        analise += "\n---\n\n"
+        # 9. ANÁLISE DETALHADA DA ÂNCORA PRINCIPAL (conforme Analise Tipo de Perfil.md)
+        ancora_principal = top_3[0]
+        segunda_ancora = top_3[1]
+        terceira_ancora = top_3[2]
         
-        # ===== BLOCO 1: ANÁLISE DO PERFIL =====
-        analise += f"## 🔍 BLOCO 1 - Análise do Perfil\n\n"
+        # Calcular diferenças absolutas
+        diferenca_1_2 = ancora_principal['valor_total'] - segunda_ancora['valor_total']
+        diferenca_1_3 = ancora_principal['valor_total'] - terceira_ancora['valor_total']
+        diferenca_2_3 = segunda_ancora['valor_total'] - terceira_ancora['valor_total']
         
-        # Perfil Combinado
-        if perfil_secundario:
-            chaves_combinado = [f"### {perfil_primario}/{perfil_secundario} -", f"### {perfil_secundario}/{perfil_primario} -"]
-            desc_combinado = extrair_conteudo(secoes.get("combinados", ""), chaves_combinado)
-
-            if desc_combinado:
-                analise += f"### 🤝 Perfil Combinado: {perfil_primario}/{perfil_secundario}\n\n"
-                analise += f"{desc_combinado}\n\n"
+        # Calcular diferenças percentuais
+        perc_1_2 = (diferenca_1_2 / segunda_ancora['valor_total']) * 100 if segunda_ancora['valor_total'] > 0 else 0
+        perc_1_3 = (diferenca_1_3 / terceira_ancora['valor_total']) * 100 if terceira_ancora['valor_total'] > 0 else 0
         
-        # Perfil Individual (com pontos fortes e limitações)
-        conteudo_individual_raw = extrair_conteudo(secoes.get("individuais", ""), [f"### Perfil {perfil_primario} -"])
-        desc_individual, pontos_fortes_html, limitacoes_html = "", "", ""
+        # Determinar tipo de perfil conforme critérios do documento
+        if ((perc_1_2 >= 15 and perc_1_3 >= 25) or 
+            (diferenca_1_2 >= 30 and diferenca_1_3 >= 50)):
+            tipo_perfil = "DOMINANTE"
+            criterio = f"1ª âncora: +{diferenca_1_2:.1f}pts ({perc_1_2:.1f}%) da 2ª e +{diferenca_1_3:.1f}pts ({perc_1_3:.1f}%) da 3ª"
+        elif (diferenca_1_2 <= 15 and diferenca_1_3 <= 15 and diferenca_2_3 <= 15):
+            tipo_perfil = "EQUILIBRADO"
+            criterio = f"Diferenças pequenas entre top 3: {diferenca_1_2:.1f}pts, {diferenca_1_3:.1f}pts, {diferenca_2_3:.1f}pts"
+        else:
+            tipo_perfil = "MODERADAMENTE DOMINANTE"
+            criterio = f"Perfil intermediário: +{diferenca_1_2:.1f}pts da 2ª, +{diferenca_1_3:.1f}pts da 3ª"
         
-        if conteudo_individual_raw:
-            # Extrair descrição principal
-            inicio_fortes = conteudo_individual_raw.find('- **Pontos Fortes:**')
-            desc_individual = conteudo_individual_raw[:inicio_fortes if inicio_fortes != -1 else len(conteudo_individual_raw)].strip()
+        # Informações do perfil
+        info_perfil_html = f"""
+        <div style='background-color: #fff3cd; padding: 15px; margin: 15px 0; border-radius: 8px; border-left: 4px solid #ffc107;'>
+            <p style='margin: 0; font-size: 16px; color: #856404;'>
+                <strong>🎯 Âncora Dominante:</strong> {ancora_principal['nome']}<br>
+                <strong>📊 Pontuação:</strong> {ancora_principal['valor_total']:.1f} pontos<br>
+                <strong>📈 Tipo de Perfil:</strong> {tipo_perfil}<br>
+                <strong>📋 Critério:</strong> {criterio}
+            </p>
+        </div>
+        """
+        st.markdown(info_perfil_html, unsafe_allow_html=True)
+        
+        # 10. EXIBIR ANÁLISE DETALHADA - NOVA LÓGICA
+        st.markdown("## 📖 Análise das suas Âncoras de Carreira")
+        
+        # 10.1 SEMPRE CARREGAR ABERTURA PRIMEIRO
+        arquivo_abertura = 'Conteudo/A0_Abertura_Devolutiva.md'
+        
+        try:
+            with open(arquivo_abertura, 'r', encoding='utf-8') as f:
+                conteudo_abertura = f.read()
+            st.markdown(conteudo_abertura, unsafe_allow_html=True)
             
-            analise += f"### 👤 Características do seu Perfil Principal: {perfil_primario}\n\n"
-            analise += f"{desc_individual}\n\n"
+        except FileNotFoundError:
+            st.warning(f"📝 **Arquivo de abertura não encontrado:** {arquivo_abertura}")
+            st.info("Iniciando análise das suas âncoras de carreira...")
             
-            # Extrair pontos fortes
-            if inicio_fortes != -1:
-                inicio_limit = conteudo_individual_raw.find('- **Limitações:**', inicio_fortes)
-                fortes_raw = conteudo_individual_raw[inicio_fortes:inicio_limit if inicio_limit != -1 else len(conteudo_individual_raw)]
-                fortes_raw = fortes_raw.replace('- **Pontos Fortes:**', '').strip()
-                fortes_lista = [f"<li>{item.strip()}</li>" for item in fortes_raw.split(',') if item.strip()]
-                pontos_fortes_html = f"<h4>✅ Pontos Fortes ({perfil_primario})</h4><ul>{''.join(fortes_lista)}</ul>"
-
-            # Extrair limitações
-            if inicio_limit != -1:
-                limitacoes_raw = conteudo_individual_raw[inicio_limit:].replace('- **Limitações:**', '').strip()
-                limitacoes_lista = [f"<li>{item.strip()}</li>" for item in limitacoes_raw.split(',') if item.strip()]
-                limitacoes_html = f"<h4>⚠️ Limitações a observar ({perfil_primario})</h4><ul>{''.join(limitacoes_lista)}</ul>"
-
-            # Adicionar pontos fortes e limitações
-            if pontos_fortes_html:
-                analise += f"{pontos_fortes_html}\n\n"
-
-            if limitacoes_html:
-                analise += f"{limitacoes_html}\n\n"
+        except Exception as e:
+            st.error(f"❌ **Erro ao carregar abertura:** {str(e)}")
         
-        analise += "\n---\n\n"
+        # 10.2 CARREGAR ANÁLISE DAS TOP 3 ÂNCORAS
+        posicoes = ["🥇 Primeira", "🥈 Segunda", "🥉 Terceira"]
         
-        # ===== BLOCO 2: ANÁLISE DO COMPORTAMENTO =====
-        analise += f"## 🎭 BLOCO 2 - Análise do Comportamento\n\n"
-        analise += f"*Esta seção será desenvolvida na próxima etapa...*\n\n"
+        for i, ancora in enumerate(top_3):
+            posicao = posicoes[i]
+            arquivo_analise = ancora['arquivo']
+            
+            try:
+                st.markdown(f"### {posicao} Âncora: {ancora['nome']}")
+                st.markdown(f"**Pontuação:** {ancora['valor_total']:.1f} pontos")
+                
+                with open(arquivo_analise, 'r', encoding='utf-8') as f:
+                    conteudo_analise = f.read()
+                
+                # Exibir conteúdo da âncora
+                st.markdown(conteudo_analise, unsafe_allow_html=True)
+                
+                # Separador entre âncoras (exceto na última)
+                if i < len(top_3) - 1:
+                    st.markdown("---")
+                
+            except FileNotFoundError:
+                st.warning(f"📝 **Arquivo não encontrado:** {arquivo_analise}")
+                st.info(f"A análise detalhada de {ancora['nome']} será disponibilizada em breve.")
+                
+                # Análise básica como fallback
+                st.markdown(f"**Descrição:** {ancora['descricao']}")
+                st.markdown(f"**Sua pontuação:** {ancora['valor_total']:.1f} pontos")
+                
+            except Exception as e:
+                st.error(f"❌ **Erro ao carregar análise de {ancora['nome']}:** {str(e)}")
         
-        # Extrair e formatar seções de Excesso e Aperfeiçoamento (temporariamente comentado)
-        # desc_excesso_raw = extrair_conteudo(secoes.get("excesso", ""), [f"### {perfil_primario}"])
-        # desc_aperfeicoamento_raw = extrair_conteudo(secoes.get("aperfeicoamento", ""), [f"### {perfil_primario}"])
-        # html_excesso = formatar_tabela_html(desc_excesso_raw, "Quando seus Pontos Fortes são usados em Excesso")
-        # html_aperfeicoamento = formatar_tabela_html(desc_aperfeicoamento_raw, "Caminhos para o Aperfeiçoamento e Desenvolvimento")
+        # 11. RESUMO EXECUTIVO (conforme Analise Tipo de Perfil.md)
+        st.markdown("### 📋 Resumo do seu Perfil de Âncoras")
         
-        # if html_excesso:
-        #     analise += f"{html_excesso}\n\n"
-        # if html_aperfeicoamento:
-        #     analise += f"{html_aperfeicoamento}\n\n"
-
-        # Validação final
-        if not any([desc_combinado if perfil_secundario else True, desc_individual]):
-            analise += f"⚠️ **Observação:** Algumas seções da análise podem estar incompletas devido à estrutura do arquivo de conhecimento."
-
-        return analise
-
+        # Identificar padrão das top 3
+        nomes_top_3 = [a['nome'] for a in top_3]
+        
+        # Interpretação baseada no tipo de perfil
+        if tipo_perfil == "DOMINANTE":
+            interpretacao = f"""Com base na distribuição de pontos, observa-se um perfil **{tipo_perfil}**. 
+            A âncora **{ancora_principal['nome']}** se destaca com {ancora_principal['valor_total']:.1f} pontos, 
+            representando a principal motivação de carreira. A diferença de {diferenca_1_2:.1f} pontos para a segunda âncora 
+            sugere uma motivação muito clara e bem definida."""
+            
+        elif tipo_perfil == "EQUILIBRADO":
+            interpretacao = f"""Com base na distribuição de pontos, observa-se um perfil **{tipo_perfil}**. 
+            As diferenças pequenas entre as âncoras apontam para um perfil **multifacetado e adaptável**, 
+            indicando que você busca realizar-se por meio de uma combinação de fatores como {', '.join(nomes_top_3)}."""
+            
+        else:  # MODERADAMENTE DOMINANTE
+            interpretacao = f"""Com base na distribuição de pontos, observa-se um perfil **{tipo_perfil}**. 
+            A âncora **{ancora_principal['nome']}** mostra uma leve predominância com {ancora_principal['valor_total']:.1f} pontos, 
+            mas as outras âncoras também têm peso significativo, sugerindo múltiplas motivações profissionais."""
+        
+        resumo_html = f"""
+        <div style='background-color: #d1ecf1; padding: 15px; margin: 15px 0; border-radius: 8px; border-left: 4px solid #bee5eb;'>
+            <h5 style='margin-top: 0; color: #0c5460;'>🎯 Resumo Executivo</h5>
+            <p style='margin: 5px 0; color: #0c5460; line-height: 1.6;'>
+                {interpretacao}
+            </p>
+            <hr style='margin: 10px 0; border-color: #bee5eb;'>
+            <p style='margin: 5px 0; color: #0c5460; font-size: 14px;'>
+                <strong>Top 3 Âncoras:</strong> {' | '.join([f"{i+1}º {a['nome']} ({a['valor_total']:.1f}pts)" for i, a in enumerate(top_3)])}<br>
+                <strong>Critério de Classificação:</strong> {criterio}
+            </p>
+        </div>
+        """
+        st.markdown(resumo_html, unsafe_allow_html=True)
+        
     except Exception as e:
-        traceback.print_exc()
-        return f"Ocorreu um erro inesperado ao gerar a análise DISC: {str(e)}"
+        st.error(f"❌ **Erro na análise de Âncoras de Carreira:** {str(e)}")
+        import traceback
+        st.error(f"**Detalhes técnicos:** {traceback.format_exc()}")
 
 if __name__ == "__main__":
     show_results()

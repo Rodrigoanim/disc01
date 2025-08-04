@@ -1,0 +1,99 @@
+# FILE: variavel_texto_en.txt
+# Career Anchor System - External Texts
+# Date: 03/08/2025 - Transition from DISC project to Career Anchor
+# 
+# CONVENTION: [file_name]_[sequential_3_digits]
+#
+# ================================================================
+
+# === GENERAL CONFIGURATION ===
+app_title=Career Anchor Platform - v1.0a
+app_about=Career Anchor Assessment System - Version 1.0a - 03/08/2025
+
+# === MAIN.PY - LOGIN SCREEN ===
+main_001=Behavioral Platform
+main_002=E-mail
+main_003=Password
+main_004=I declare that I have read and accept the [terms of use of the tool](https://ag93eventos.com.br/ear/Termos_Uso_DISC.pdf)
+main_005=Enter
+main_006=You must accept the terms of use to continue.
+main_007=Invalid email or password. Please check your data and try again.
+
+# === MAIN.PY - WELCOME SCREEN ===
+main_008=Research Based on Career Anchor Methodology
+main_009=Purpose
+main_010=This Web App aims to identify your predominant career anchors, revealing your fundamental professional values, motivations and aspirations.
+main_011=By identifying your anchors, you activate a journey of applied professional self-knowledge that expands your awareness of your motivations, strengthens your career choices and enhances your decisions with more clarity, purpose and alignment.
+main_012=More than a diagnosis, it is a starting point to evolve with purpose, make conscious professional choices and build a career with authenticity and satisfaction.
+
+# === MAIN.PY - APPLICATION HEADER ===
+main_013=CHAVE Platform - Human Development, AI Automations
+main_014=User Information / Logout
+main_015=**User:**
+main_016=**ID:**
+main_017=**Profile:**
+main_018=Logout
+
+# === MAIN.PY - CHANGE PASSWORD ===
+main_019=Change Password
+main_020=**Instructions:**<br>• Enter your current password to confirm your identity<br>• Enter your desired new password<br>• Confirm the new password to avoid typing errors
+main_021=Current Password
+main_022=New Password
+main_023=Confirm New Password
+main_024=Change Password
+main_025=All fields are required!
+main_026=Passwords do not match! Enter the same password in both fields.
+main_027=The new password must be different from the current password!
+main_028=Current password incorrect! Check and try again.
+main_029=✅ Password changed successfully!
+main_030=The new password will be valid on next login.
+main_031=Error changing password: {error}
+
+# === MAIN.PY - RESET VALUES ===
+main_032=Confirm value reset?
+main_033=Reset Values
+main_034=Confirm the operation to proceed
+main_035=Values reset successfully! ({records} records updated)
+main_036=Error resetting values: {error}
+
+# === MAIN.PY - ADMINISTRATIVE MODE ===
+main_037=🔍 **Administrative Mode:** Viewing analysis of **{user}**
+main_038=⬅️ **Back to Administrative Module**
+main_039=Administrative Analysis - {user}
+
+# === MAIN.PY - NAVIGATION ===
+main_040=Select Module:
+main_041=Select Function:
+
+# === MAIN.PY - MENU GROUPS ===
+main_042=Opening
+main_043=Assessment
+main_044=Analysis
+main_045=Administration
+
+# === MAIN.PY - MENU OPTIONS ===
+main_046=Welcome
+main_047=Anchors P1
+main_048=Anchors P2
+main_049=Results
+main_050=of Assessments
+main_051=Table Info (CRUD)
+main_052=Usage Monitor
+main_053=Diagnosis
+main_054=User Analysis
+main_055=Change Password
+main_056=Reset Values
+
+# === MAIN.PY - SYSTEM MESSAGES ===
+main_057=Database not found at {path}
+main_058=Folder '{folder}' not found. The program cannot continue.
+main_059=Database '{database}' not found. The program cannot continue.
+main_060=Function not found.
+
+# === MAIN.PY - PAGE TITLES ===
+main_061=Assessment Analysis
+
+# === FORM_MODEL.PY - SECTION TITLES ===
+form_model_001=Career Anchor Assessment - Part 1
+form_model_002=Career Anchor Assessment - Part 2
+form_model_003=Assessment Results 

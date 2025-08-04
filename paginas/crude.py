@@ -1,8 +1,8 @@
 # Arquivo: crude.py
-# Data: 05/03/2025  16:00
+# Data: 22/07/2025  16:00
 # IDE Cursor - claude 3.5 sonnet
 # Adaptação para o uso de Discos SSD e a pasta Data para o banco de dados
-# Nova coluna - col_len
+# Download o banco de dados: calcpc.db 
 
 import streamlit as st
 import pandas as pd
@@ -133,7 +133,16 @@ def show_crud():
     
     if st.button("Atualizar Dados"):
         st.rerun()
-    
+
+    # Botão para download do banco de dados
+    with open("data/calcpc.db", "rb") as db_file:
+        st.download_button(
+            label="Download DB",
+            data=db_file,
+            file_name="calcpc.db",
+            mime="application/octet-stream"
+        )
+
     # Atualiza a lista de tabelas para incluir a tabela de log_acessos
     tables = ["", "usuarios", "forms_tab", "forms_resultados", "log_acessos"]
     

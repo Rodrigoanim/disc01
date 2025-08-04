@@ -1,9 +1,9 @@
-# Data: 09/07/2025 - Hora: 17:00
+# Data: 03/08/2025 - Hora: 20:30
 # IDE Cursor - claude-4-sonnet
-# comando: streamlit run main.py
+# comando: uv run streamlit run main.py
 # DISC - etapa de Análise DISC
 # Troca senha do usuário - OK
-# Troca Títulos e textos da Abertura - OK
+# Multi-lingua - Seletor de idioma na tela de login
 
 import streamlit as st
 import sqlite3
@@ -13,12 +13,14 @@ import sys
 from config import DB_PATH, DATA_DIR
 import os
 import streamlit.components.v1 as components
+from texto_manager import get_texto, set_user_language
 
 from paginas.form_model import process_forms_tab
 from paginas.monitor import registrar_acesso, main as show_monitor
 from paginas.crude import show_crud
 from paginas.diagnostico import show_diagnostics
 from paginas.resultados import show_results
+from paginas.resultados_adm import show_resultados_adm
 
 
 # Adicione esta linha logo no início do arquivo, após os imports
@@ -26,17 +28,14 @@ from paginas.resultados import show_results
 
 # Configuração da página - deve ser a primeira chamada do Streamlit
 st.set_page_config(
-    page_title="Assessment DISC - v.1b",  # Título na Aba do Navegador
-    page_icon="📊",
+    page_title="Âncora de Carreira - v1.0a",  # Título na Aba do Navegador
+    page_icon="⚓",
     layout="centered",
     menu_items={
         'About': """
-        ### Sobre o Sistema - Assessment DISC
+        ### Sistema de Assessment de Âncoras de Carreira
         
-        Versão: 1.0 - 17/06/2025
-        
-        Este sistema foi desenvolvido para realizar avaliações comportamentais 
-        utilizando a metodologia DISC.
+        Versão 1.0a - 26/01/2025
         
         © 2025 Todos os direitos reservados.
         """,
@@ -45,6 +44,10 @@ st.set_page_config(
     },
     initial_sidebar_state="collapsed"
 )
+
+# Inicializar sistema de textos após set_page_config
+from texto_manager import inicializar_textos
+inicializar_textos()
 
 # Adicionar verificação e carregamento do logo
 import os
@@ -94,7 +97,7 @@ def authenticate_user():
     
     # Verifica se o banco existe
     if not DB_PATH.exists():
-        st.error(f"Banco de dados não encontrado em {DB_PATH}")
+        st.error(get_texto('main_057', 'Banco de dados não encontrado').format(caminho=DB_PATH))
         return False, None
         
     if "user_profile" not in st.session_state:
@@ -110,25 +113,43 @@ def authenticate_user():
         # Imagem de capa - Tela 
         st.image("webinar1.jpg", use_container_width=True)
             
-        st.markdown("""
-            <p style='text-align: center; font-size: 35px;'>Faça login para acessar o sistema</p>
+        st.markdown(f"""
+            <p style='text-align: center; font-size: 35px;'>{get_texto('main_001', 'Plataforma de Âncoras de Carreira')}</p>
         """, unsafe_allow_html=True)
+        
+        # Seletor de idioma
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            selected_language = st.selectbox(
+                "🌐 Idioma / Language / Idioma",
+                options=[
+                    ("pt", "🇧🇷 Português"),
+                    ("en", "🇺🇸 English"),
+                    ("es", "🇪🇸 Español")
+                ],
+                format_func=lambda x: x[1],
+                key="language_selector"
+            )
+            selected_language_code = selected_language[0]
+        
+        # Criar um usuário temporário para carregar textos no idioma selecionado
+        temp_user_id = f"temp_{selected_language_code}"
         
         # Formulário de login na área principal
         with st.form("login_form"):
-            email = st.text_input("E-mail", key="email")
-            password = st.text_input("Senha", type="password", key="password")
+            email = st.text_input(get_texto('main_002', 'E-mail', user_id=temp_user_id), key="email")
+            password = st.text_input(get_texto('main_003', 'Senha', user_id=temp_user_id), type="password", key="password")
 
             aceite_termos = st.checkbox(
-                'Declaro que li e aceito os [termos de uso da ferramenta](https://ag93eventos.com.br/ear/Termos_Uso_DISC.pdf)',
+                get_texto('main_004', 'Declaro que li e aceito os termos de uso', user_id=temp_user_id),
                 key='aceite_termos'
             )
 
-            login_button = st.form_submit_button("Entrar", use_container_width=True)
+            login_button = st.form_submit_button(get_texto('main_005', 'Entrar', user_id=temp_user_id), use_container_width=True)
         
             if login_button:
                 if not aceite_termos:
-                    st.warning("Você deve aceitar os termos de uso para continuar.")
+                    st.warning(get_texto('main_006', 'Você deve aceitar os termos de uso para continuar.', user_id=temp_user_id))
                 else:
                     clean_email = email.strip()
 
@@ -141,6 +162,9 @@ def authenticate_user():
                     conn.close()
 
                     if user:
+                        # Salvar idioma escolhido no banco
+                        set_user_language(user[1], selected_language_code)
+                        
                         st.session_state["logged_in"] = True
                         st.session_state["user_profile"] = user[2]
                         st.session_state["user_id"] = user[1]
@@ -154,7 +178,7 @@ def authenticate_user():
                         )
                         st.rerun()
                     else:
-                        st.error("E-mail ou senha inválidos. Por favor, verifique seus dados e tente novamente.")
+                        st.error(get_texto('main_007', 'E-mail ou senha inválidos. Por favor, verifique seus dados e tente novamente.', user_id=temp_user_id))
 
     return st.session_state.get("logged_in", False), st.session_state.get("user_profile", None)
 
@@ -171,9 +195,9 @@ def get_timezone_offset():
 
 def show_welcome():
     
-    st.markdown("""
-        <p style='text-align: center; font-size: 30px; font-weight: bold;'>Pesquisa Comportamental</p>
-        <p style='text-align: center; font-size: 30px; font-weight: bold;'>baseada na metodologia DISC</p>
+    st.markdown(f"""
+        <p style='text-align: center; font-size: 30px; font-weight: bold;'>{get_texto('main_008', 'Pesquisa Baseada na Metodologia de Âncoras de Carreira')}</p>
+        
     """, unsafe_allow_html=True)
     
     # Buscar dados do usuário
@@ -198,9 +222,9 @@ def show_welcome():
     with col1:
         st.markdown(f"""
             <div style="background-color: #007a7d; padding: 20px; border-radius: 8px; height: 100%;">
-                <p style="color: #ffffff; font-size: 24px; font-weight: bold;">Propósito</p>
+                <p style="color: #ffffff; font-size: 24px; font-weight: bold;">{get_texto('main_009', 'Propósito')}</p>
                 <div style="color: #ffffff; font-size: 16px;">
-                    <p>Este Web App tem como objetivo identificar o seu estilo comportamental predominante conforme a metodologia DISC (Dominância, Influência, Estabilidade e Conformidade).</p>
+                    <p>{get_texto('main_010', 'Este Web App tem como objetivo identificar suas âncoras de carreira predominantes.')}</p>
                 </div>
             </div>
         """, unsafe_allow_html=True)
@@ -211,18 +235,18 @@ def show_welcome():
             <div style="background-color: #53a7a9; padding: 20px; border-radius: 8px; height: 100%;">
                 <p style="color: #ffffff; font-size: 24px; font-weight: bold;"></p>
                 <div style="color: #ffffff; font-size: 16px;">
-                    <p>Ao identificar seu perfil, você ativa uma jornada de autoconhecimento aplicado, que amplia sua consciência relacional, fortalece sua comunicação e potencializa suas decisões com mais clareza, presença e alinhamento</p>
+                    <p>{get_texto('main_011', 'Ao identificar suas âncoras, você ativa uma jornada de autoconhecimento profissional aplicado.')}</p>
                 </div>
             </div>
         """, unsafe_allow_html=True)
 
     # Coluna 3: Funções
     with col3:
-        modulos_html = """
+        modulos_html = f"""
             <div style="background-color: #8eb0ae; padding: 20px; border-radius: 8px; height: 100%;">
                 <p style="color: #ffffff; font-size: 24px; font-weight: bold;"></p>
                 <div style="color: #ffffff; font-size: 16px;">
-                    <p>Mais do que um diagnóstico, é um ponto de partida para evoluir com propósito, colaborar com intenção e liderar com autenticidade.</p>
+                    <p>{get_texto('main_012', 'Mais do que um diagnóstico, é um ponto de partida para evoluir com propósito.')}</p>
                     <p></p>                    
                     <p></p>                    
                 </div>
@@ -234,43 +258,40 @@ def show_welcome():
 def trocar_senha():
     """Função para permitir que o usuário logado troque sua senha"""
     
-    st.markdown("""
+    st.markdown(f"""
         <p style='text-align: center; font-size: 30px; font-weight: bold;'>
-            Trocar Senha
+            {get_texto('main_019', 'Trocar Senha')}
         </p>
     """, unsafe_allow_html=True)
     
-    st.markdown("""
+    st.markdown(f"""
         <div style='background-color:#f0f0f0;padding:15px;border-radius:5px;margin-bottom:20px;'>
             <p style='font-size:16px;color:#333;'>
-                <strong>Instruções:</strong><br>
-                • Digite sua senha atual para confirmar sua identidade<br>
-                • Digite a nova senha desejada<br>
-                • Confirme a nova senha para evitar erros de digitação
+                {get_texto('main_020', 'Instruções para trocar senha')}
             </p>
         </div>
     """, unsafe_allow_html=True)
     
     # Formulário de troca de senha
     with st.form("trocar_senha_form"):
-        senha_atual = st.text_input("Senha Atual", type="password", key="senha_atual")
-        nova_senha = st.text_input("Nova Senha", type="password", key="nova_senha")
-        confirmar_senha = st.text_input("Confirmar Nova Senha", type="password", key="confirmar_senha")
+        senha_atual = st.text_input(get_texto('main_021', 'Senha Atual'), type="password", key="senha_atual")
+        nova_senha = st.text_input(get_texto('main_022', 'Nova Senha'), type="password", key="nova_senha")
+        confirmar_senha = st.text_input(get_texto('main_023', 'Confirmar Nova Senha'), type="password", key="confirmar_senha")
         
-        submit_button = st.form_submit_button("Alterar Senha", use_container_width=True)
+        submit_button = st.form_submit_button(get_texto('main_024', 'Alterar Senha'), use_container_width=True)
         
         if submit_button:
             # Validações
             if not senha_atual or not nova_senha or not confirmar_senha:
-                st.error("Todos os campos são obrigatórios!")
+                st.error(get_texto('main_025', 'Todos os campos são obrigatórios!'))
                 return
             
             if nova_senha != confirmar_senha:
-                st.error("As senhas não coincidem! Digite a mesma senha nos dois campos.")
+                st.error(get_texto('main_026', 'As senhas não coincidem! Digite a mesma senha nos dois campos.'))
                 return
             
             if nova_senha == senha_atual:
-                st.error("A nova senha deve ser diferente da senha atual!")
+                st.error(get_texto('main_027', 'A nova senha deve ser diferente da senha atual!'))
                 return
             
             try:
@@ -284,7 +305,7 @@ def trocar_senha():
                 """, (st.session_state["user_id"], senha_atual))
                 
                 if not cursor.fetchone():
-                    st.error("Senha atual incorreta! Verifique e tente novamente.")
+                    st.error(get_texto('main_028', 'Senha atual incorreta! Verifique e tente novamente.'))
                     conn.close()
                     return
                 
@@ -305,17 +326,63 @@ def trocar_senha():
                     acao="trocar_senha"
                 )
                 
-                st.success("✅ Senha alterada com sucesso!")
-                st.info("A nova senha será válida no próximo login.")
+                st.success(get_texto('main_029', '✅ Senha alterada com sucesso!'))
+                st.info(get_texto('main_030', 'A nova senha será válida no próximo login.'))
                 
                 # Limpar os campos do formulário
                 time.sleep(2)
                 st.rerun()
                 
             except Exception as e:
-                st.error(f"Erro ao alterar senha: {str(e)}")
+                st.error(get_texto('main_031', 'Erro ao alterar senha: {erro}').format(erro=str(e)))
                 if 'conn' in locals():
                     conn.close()
+
+def show_analysis_with_admin_controls():
+    """Wrapper para exibir análises com controles administrativos quando necessário"""
+    
+    # Verificar se é visualização administrativa
+    admin_user_id = st.session_state.get("admin_view_user_id")
+    admin_user_name = st.session_state.get("admin_view_user_name")
+    current_user_id = st.session_state.get("user_id")
+    
+    if admin_user_id and admin_user_id != current_user_id:
+        # É visualização administrativa
+        st.markdown(f"""
+            <div style='background-color:#fff3cd;padding:10px;border-radius:5px;margin-bottom:15px;border-left:4px solid #ffc107;'>
+                <p style='margin:0;font-size:14px;'>
+                    {get_texto('main_037', '🔍 **Modo Administrativo:** Visualizando análise de **{{usuario}}**').format(usuario=admin_user_name)}
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        # Botão para voltar ao módulo administrativo
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            if st.button(get_texto('main_038', '⬅️ **Voltar ao Módulo Administrativo**'), use_container_width=True, type="secondary"):
+                # Limpar dados administrativos
+                st.session_state.pop("admin_view_user_id", None)
+                st.session_state.pop("admin_view_user_name", None)
+                
+                # Definir flag para retornar ao módulo administrativo
+                st.session_state["return_to_admin"] = True
+                st.rerun()
+        
+        st.markdown("---")
+        
+        # Exibir análise do usuário selecionado
+        show_results(
+            tabela_escolhida="forms_resultados", 
+            titulo_pagina=get_texto('main_039', 'Análise Administrativa - {usuario}').format(usuario=admin_user_name), 
+            user_id=admin_user_id
+        )
+    else:
+        # Visualização normal do próprio usuário
+        show_results(
+            tabela_escolhida="forms_resultados", 
+            titulo_pagina=get_texto('main_061', 'Análise das Avaliações'), 
+            user_id=current_user_id
+        )
 
 def zerar_value_element():
     """Função para zerar todos os value_element do usuário logado na tabela forms_tab onde type_element é input, formula ou formulaH"""
@@ -324,11 +391,11 @@ def zerar_value_element():
         st.session_state.confirma_zeragem = False
     
     # Checkbox para confirmação
-    confirma = st.checkbox("Confirmar zeragem dos valores?", 
+    confirma = st.checkbox(get_texto('main_032', 'Confirmar zeragem dos valores?'), 
                                  value=st.session_state.confirma_zeragem,
                                  key='confirma_zeragem')
     
-    if st.button("Zerar Valores"):
+    if st.button(get_texto('main_033', 'Zerar Valores')):
         if confirma:
             try:
                 conn = sqlite3.connect(DB_PATH)
@@ -355,29 +422,29 @@ def zerar_value_element():
                     acao="zerar_valores"
                 )
                 
-                st.success(f"Valores zerados com sucesso! ({registros_afetados} registros atualizados)")
+                st.success(get_texto('main_035', 'Valores zerados com sucesso! ({registros} registros atualizados)').format(registros=registros_afetados))
                 
                 # Força a atualização da página após 1 segundo
                 time.sleep(1)
                 st.rerun()
                 
             except Exception as e:
-                st.error(f"Erro ao zerar valores: {str(e)}")
+                st.error(get_texto('main_036', 'Erro ao zerar valores: {erro}').format(erro=str(e)))
                 if 'conn' in locals():
                     conn.close()
         else:
-            st.warning("Confirme a operação para prosseguir")
+            st.warning(get_texto('main_034', 'Confirme a operação para prosseguir'))
 
 def main():
     """Gerencia a navegação entre as páginas do sistema."""
     # Verifica se o diretório data existe
     if not DATA_DIR.exists():
-        st.error(f"Pasta '{DATA_DIR}' não encontrada. O programa não pode continuar.")
+        st.error(get_texto('main_058', 'Pasta \'{pasta}\' não encontrada. O programa não pode continuar.').format(pasta=DATA_DIR))
         st.stop()
         
     # Verifica se o banco existe
     if not DB_PATH.exists():
-        st.error(f"Banco de dados '{DB_PATH}' não encontrado. O programa não pode continuar.")
+        st.error(get_texto('main_059', 'Banco de dados \'{banco}\' não encontrado. O programa não pode continuar.').format(banco=DB_PATH))
         st.stop()
         
     logged_in, user_profile = authenticate_user()
@@ -396,18 +463,18 @@ def main():
             st.image(logo_path, width=150)
     
     with col2:
-        st.markdown("""
+        st.markdown(f"""
             <p style='text-align: center; font-size: 30px; font-weight: bold;'>
-                Plataforma CHAVE  - Desenvolvimento Humano, Automações com IA
+                {get_texto('main_013', 'Plataforma CHAVE - Desenvolvimento Humano, Automações com IA')}
             </p>
         """, unsafe_allow_html=True)
-        with st.expander("Informações do Usuário / Logout", expanded=False):
+        with st.expander(get_texto('main_014', 'Informações do Usuário / Logout'), expanded=False):
             st.markdown(f"""
-                **Usuário:** {st.session_state.get('user_name')}  
-                **ID:** {st.session_state.get('user_id')}  
-                **Perfil:** {st.session_state.get('user_profile')}
+                {get_texto('main_015', '**Usuário:**')} {st.session_state.get('user_name')}  
+                {get_texto('main_016', '**ID:**')} {st.session_state.get('user_id')}  
+                {get_texto('main_017', '**Perfil:**')} {st.session_state.get('user_profile')}
             """)
-            if st.button("Logout"):
+            if st.button(get_texto('main_018', 'Logout')):
                 if "user_id" in st.session_state:
                     registrar_acesso(
                         user_id=st.session_state["user_id"],
@@ -425,75 +492,95 @@ def main():
     
     # Mapeamento de páginas para suas funções de handler
     page_handlers = {
-        "Bem-vindo": show_welcome,
-        "de Perfis": lambda: process_forms_tab("perfil"),
-        "de Comportamento": lambda: process_forms_tab("comportamento"),
-        "Resultados": lambda: process_forms_tab("resultado"),
-        "das Avaliações": lambda: show_results(tabela_escolhida="forms_resultados", titulo_pagina="Análise das Avaliações", user_id=st.session_state.user_id),
-        "Info Tabelas (CRUD)": show_crud,
-        "Monitor de Uso": show_monitor,
-        "Diagnóstico": show_diagnostics,
-        "Trocar Senha": trocar_senha,
-        "Zerar Valores": zerar_value_element,
+        get_texto('main_046', 'Bem-vindo'): show_welcome,
+        get_texto('main_047', 'Âncoras P1'): lambda: process_forms_tab("ancoras_p1"),
+        get_texto('main_048', 'Âncoras P2'): lambda: process_forms_tab("ancoras_p2"),
+        get_texto('main_049', 'Resultados'): lambda: process_forms_tab("resultado"),
+        get_texto('main_050', 'das Avaliações'): lambda: show_analysis_with_admin_controls(),
+        get_texto('main_051', 'Info Tabelas (CRUD)'): show_crud,
+        get_texto('main_052', 'Monitor de Uso'): show_monitor,
+        get_texto('main_053', 'Diagnóstico'): show_diagnostics,
+        get_texto('main_054', 'Análises de Usuários'): show_resultados_adm,
+        get_texto('main_055', 'Trocar Senha'): trocar_senha,
+        get_texto('main_056', 'Zerar Valores'): zerar_value_element,
     }
     
     # Criando grupos de menu
     menu_groups = {
-        "Abertura": ["Bem-vindo"],
-        "Avaliação": [
-            "de Perfis",
-            "de Comportamento",
-            "Resultados"
+        get_texto('main_042', 'Abertura'): [get_texto('main_046', 'Bem-vindo')],
+        get_texto('main_043', 'Avaliação'): [
+            get_texto('main_047', 'Âncoras P1'),
+            get_texto('main_048', 'Âncoras P2'),
+            get_texto('main_049', 'Resultados')
         ],
-        "Análise": [
-            "das Avaliações",
+        get_texto('main_044', 'Análise'): [
+            get_texto('main_050', 'das Avaliações'),
         ],
-        "Administração": []  # Iniciando vazio para adicionar itens na ordem correta
+        get_texto('main_045', 'Administração'): []  # Iniciando vazio para adicionar itens na ordem correta
     }
     
     # Adicionar opções administrativas na ordem desejada
-    if user_profile and user_profile.lower() == "master":
-        menu_groups["Administração"].append("Info Tabelas (CRUD)")
-    if user_profile and user_profile.lower() == "master":
-        menu_groups["Administração"].append("Diagnóstico")
+    admin_group_key = get_texto('main_045', 'Administração')
     if user_profile and user_profile.lower() in ["adm", "master"]:
-        menu_groups["Administração"].append("Monitor de Uso")
+        menu_groups[admin_group_key].append(get_texto('main_054', 'Análises de Usuários'))
+    if user_profile and user_profile.lower() == "master":
+        menu_groups[admin_group_key].append(get_texto('main_051', 'Info Tabelas (CRUD)'))
+    if user_profile and user_profile.lower() == "master":
+        menu_groups[admin_group_key].append(get_texto('main_053', 'Diagnóstico'))
+    if user_profile and user_profile.lower() in ["adm", "master"]:
+        menu_groups[admin_group_key].append(get_texto('main_052', 'Monitor de Uso'))
     # Adicionar Trocar Senha (disponível para todos os perfis)
-    menu_groups["Administração"].append("Trocar Senha")
+    menu_groups[admin_group_key].append(get_texto('main_055', 'Trocar Senha'))
     # Adicionar Zerar Valores por último
-    menu_groups["Administração"].append("Zerar Valores")
+    menu_groups[admin_group_key].append(get_texto('main_056', 'Zerar Valores'))
     
     # Se não houver opções de administração, remover o grupo
-    if not menu_groups["Administração"]:
-        menu_groups.pop("Administração")
+    if not menu_groups[admin_group_key]:
+        menu_groups.pop(admin_group_key)
     
     # Criar seletores de navegação na página principal
     nav_cols = st.columns(2)
     with nav_cols[0]:
         selected_group = st.selectbox(
-            "Selecione o Módulo:",
+            get_texto('main_040', 'Selecione o Módulo:'),
             options=list(menu_groups.keys()),
             key="group_selection"
         )
     
     with nav_cols[1]:
         section = st.radio(
-            "Selecione a Função:",
+            get_texto('main_041', 'Selecione a Função:'),
             menu_groups[selected_group],
             key="menu_selection",
             horizontal=True
         )
 
+    # Verificar se há retorno ao módulo administrativo
+    if st.session_state.get("return_to_admin", False):
+        st.session_state["return_to_admin"] = False
+        # Exibir módulo administrativo diretamente
+        show_resultados_adm()
+        return
+    
     # Verificar se houve mudança de página
     if st.session_state.get("previous_page") != section:
         st.session_state["previous_page"] = section
 
+    # Verificar se há redirecionamento pendente de análise administrativa
+    if st.session_state.get("redirect_to_analysis", False):
+        # Limpar flag de redirecionamento
+        st.session_state["redirect_to_analysis"] = False
+        
+        # Exibir análise administrativa diretamente sem modificar widgets
+        show_analysis_with_admin_controls()
+        return
+    
     # Processa a seção selecionada usando o dicionário de handlers
     handler = page_handlers.get(section)
     if handler:
         handler()
     else:
-        st.error("Função não encontrada.")
+        st.error(get_texto('main_060', 'Função não encontrada.'))
 
     # --- FOOTER ---
     st.markdown("<br>" * 1, unsafe_allow_html=True)
@@ -505,7 +592,7 @@ def main():
         with col2:
             st.image(
                 footer_logo_path,
-                width=100, 
+                width=200, 
                 use_container_width=False
             )
 

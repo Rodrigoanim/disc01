@@ -1,0 +1,99 @@
+# ARQUIVO: variavel_texto.txt
+# Sistema de Âncora de Carreira - Textos Externos
+# Data: 26/01/2025 - Transição do projeto DISC para Âncora de Carreira
+# 
+# CONVENÇÃO: [nome_arquivo]_[sequencial_3_digitos]
+#
+# ================================================================
+
+# === CONFIGURAÇÃO GERAL ===
+app_title=Plataforma Âncora de Carreira - v1.0a
+app_about=Sistema de Assessment de Âncoras de Carreira - Versão 1.0a - 26/01/2025
+
+# === MAIN.PY - TELA DE LOGIN ===
+main_001=Plataforma Comportamental
+main_002=E-mail
+main_003=Senha
+main_004=Declaro que li e aceito os [termos de uso da ferramenta](https://ag93eventos.com.br/ear/Termos_Uso_DISC.pdf)
+main_005=Entrar
+main_006=Você deve aceitar os termos de uso para continuar.
+main_007=E-mail ou senha inválidos. Por favor, verifique seus dados e tente novamente.
+
+# === MAIN.PY - TELA BEM-VINDO ===
+main_008=Pesquisa Baseada na Metodologia de <br>Âncoras de Carreira
+main_009=Propósito
+main_010=Este Web App tem como objetivo identificar suas âncoras de carreira predominantes, revelando seus valores, motivações e aspirações profissionais fundamentais.
+main_011=Ao identificar suas âncoras, você ativa uma jornada de autoconhecimento profissional aplicado, que amplia sua consciência sobre suas motivações, fortalece suas escolhas de carreira e potencializa suas decisões com mais clareza, propósito e alinhamento.
+main_012=Mais do que um diagnóstico, é um ponto de partida para evoluir com propósito, fazer escolhas profissionais conscientes e construir uma carreira com autenticidade e satisfação.
+
+# === MAIN.PY - HEADER APLICAÇÃO ===
+main_013=Plataforma CHAVE - Desenvolvimento Humano, Automações com IA
+main_014=Informações do Usuário / Logout
+main_015=**Usuário:**
+main_016=**ID:**
+main_017=**Perfil:**
+main_018=Logout
+
+# === MAIN.PY - TROCAR SENHA ===
+main_019=Trocar Senha
+main_020=**Instruções:**<br>• Digite sua senha atual para confirmar sua identidade<br>• Digite a nova senha desejada<br>• Confirme a nova senha para evitar erros de digitação
+main_021=Senha Atual
+main_022=Nova Senha
+main_023=Confirmar Nova Senha
+main_024=Alterar Senha
+main_025=Todos os campos são obrigatórios!
+main_026=As senhas não coincidem! Digite a mesma senha nos dois campos.
+main_027=A nova senha deve ser diferente da senha atual!
+main_028=Senha atual incorreta! Verifique e tente novamente.
+main_029=✅ Senha alterada com sucesso!
+main_030=A nova senha será válida no próximo login.
+main_031=Erro ao alterar senha: {erro}
+
+# === MAIN.PY - ZERAR VALORES ===
+main_032=Confirmar zeragem dos valores?
+main_033=Zerar Valores
+main_034=Confirme a operação para prosseguir
+main_035=Valores zerados com sucesso! ({registros} registros atualizados)
+main_036=Erro ao zerar valores: {erro}
+
+# === MAIN.PY - MODO ADMINISTRATIVO ===
+main_037=🔍 **Modo Administrativo:** Visualizando análise de **{usuario}**
+main_038=⬅️ **Voltar ao Módulo Administrativo**
+main_039=Análise Administrativa - {usuario}
+
+# === MAIN.PY - NAVEGAÇÃO ===
+main_040=Selecione o Módulo:
+main_041=Selecione a Função:
+
+# === MAIN.PY - GRUPOS DE MENU ===
+main_042=Abertura
+main_043=Avaliação
+main_044=Análise
+main_045=Administração
+
+# === MAIN.PY - OPÇÕES DE MENU ===
+main_046=Bem-vindo
+main_047=Âncoras P1
+main_048=Âncoras P2
+main_049=Resultados
+main_050=das Avaliações
+main_051=Info Tabelas (CRUD)
+main_052=Monitor de Uso
+main_053=Diagnóstico
+main_054=Análises de Usuários
+main_055=Trocar Senha
+main_056=Zerar Valores
+
+# === MAIN.PY - MENSAGENS DE SISTEMA ===
+main_057=Banco de dados não encontrado em {caminho}
+main_058=Pasta '{pasta}' não encontrada. O programa não pode continuar.
+main_059=Banco de dados '{banco}' não encontrado. O programa não pode continuar.
+main_060=Função não encontrada.
+
+# === MAIN.PY - TÍTULOS DE PÁGINAS ===
+main_061=Análise das Avaliações
+
+# === FORM_MODEL.PY - TÍTULOS DAS SEÇÕES ===
+form_model_001=Avaliação de Âncoras de Carreira - Parte 1
+form_model_002=Avaliação de Âncoras de Carreira - Parte 2
+form_model_003=Resultados das Avaliações
