@@ -2,13 +2,15 @@
 # Data: 22/07/2025  16:00
 # IDE Cursor - claude 3.5 sonnet
 # Adaptação para o uso de Discos SSD e a pasta Data para o banco de dados
-# Download o banco de dados: calcpc.db 
+# Download o banco de dados: calcrh2.db 
 
 import streamlit as st
 import pandas as pd
 import sqlite3
+from datetime import datetime
 
 from config import DB_PATH  # Adicione esta importação
+from paginas.monitor import registrar_acesso  # Importação para auditoria
 
 def format_br_number(value):
     """Formata um número para o padrão brasileiro."""
@@ -135,13 +137,23 @@ def show_crud():
         st.rerun()
 
     # Botão para download do banco de dados
-    with open("data/calcpc.db", "rb") as db_file:
-        st.download_button(
+    with open(DB_PATH, "rb") as db_file:
+        if st.download_button(
             label="Download DB",
             data=db_file,
-            file_name="calcpc.db",
+            file_name="calcrh2.db",
             mime="application/octet-stream"
-        )
+        ):
+            # Registra o download na auditoria
+            try:
+                registrar_acesso(
+                    user_id=st.session_state.get("user_id"),
+                    programa="CRUD",
+                    acao="DOWNLOAD_DB"
+                )
+                st.success("✅ Download registrado na auditoria!")
+            except Exception as e:
+                st.warning(f"⚠️ Download realizado, mas erro ao registrar auditoria: {str(e)}")
 
     # Atualiza a lista de tabelas para incluir a tabela de log_acessos
     tables = ["", "usuarios", "forms_tab", "forms_resultados", "log_acessos"]

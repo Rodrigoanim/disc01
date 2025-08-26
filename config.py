@@ -25,4 +25,4 @@ else:
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 # Caminho do banco de dados
-DB_PATH = DATA_DIR / 'calcpc.db'
+DB_PATH = DATA_DIR / 'calcrh2.db'

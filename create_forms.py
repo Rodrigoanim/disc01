@@ -347,7 +347,7 @@ def check_database():
         messagebox.showerror(
             "Erro",
             "Pasta 'data' não encontrada. O programa não pode continuar.\n"
-            "Por favor, crie a pasta 'data' e coloque o arquivo calcpc.db nela."
+            "Por favor, crie a pasta 'data' e coloque o arquivo calcrh2.db nela."
         )
         sys.exit(1)
         
@@ -356,7 +356,7 @@ def check_database():
         messagebox.showerror(
             "Erro",
             "Banco de dados não encontrado.\n"
-            "Por favor, verifique se o arquivo calcpc.db está na pasta data."
+            "Por favor, verifique se o arquivo calcrh2.db está na pasta data."
         )
         sys.exit(1)
 

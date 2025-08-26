@@ -1,7 +1,7 @@
-# Data: 03/08/2025 - Hora: 20:30
+# Data: 26/08/2025 - Hora: 20:30
 # IDE Cursor - claude-4-sonnet
 # comando: uv run streamlit run main.py
-# DISC - etapa de Análise DISC
+# Ancoras de Carreira
 # Troca senha do usuário - OK
 # Multi-lingua - Seletor de idioma na tela de login
 
