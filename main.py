@@ -28,14 +28,14 @@ from paginas.resultados_adm import show_resultados_adm
 
 # Configuração da página - deve ser a primeira chamada do Streamlit
 st.set_page_config(
-    page_title="Âncora de Carreira - v1.0a",  # Título na Aba do Navegador
+    page_title="Ancoras de Carreira - v1.0b",  # Título na Aba do Navegador
     page_icon="⚓",
     layout="centered",
     menu_items={
         'About': """
         ### Sistema de Assessment de Âncoras de Carreira
         
-        Versão 1.0a - 26/01/2025
+        Versão 1.0b - 26/08/2025
         
         © 2025 Todos os direitos reservados.
         """,
