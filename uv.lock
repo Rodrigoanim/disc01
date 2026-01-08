@@ -3,7 +3,7 @@ revision = 2
 requires-python = ">=3.13"
 
 [[package]]
-name = "19-ancora-carreira"
+name = "20-plataforma-ch"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

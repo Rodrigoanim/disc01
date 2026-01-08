@@ -1,0 +1,311 @@
+================================================================================
+DOCUMENTAÇÃO DE ALTERAÇÃO - INSERÇÃO DE BOTÕES DO MENU NO FINAL DA PÁGINA
+================================================================================
+
+Data: 07/11/2025
+Assessment: DISC Essencial (assessment "01")
+Arquivos Modificados: main.py e paginas/form_model_01.py
+
+================================================================================
+OBJETIVO
+================================================================================
+
+Adicionar os mesmos botões do menu principal (Parte 1, Parte 2, Resultados) 
+no final da página renderizada, permitindo que o usuário mude de seção sem 
+precisar fazer scroll até o topo da página.
+
+================================================================================
+ARQUIVOS MODIFICADOS
+================================================================================
+
+1. main.py
+   - Função: show_assessment_execution()
+   - Localização: Linha ~906 (seção do assessment "01")
+
+2. paginas/form_model_01.py
+   - Função: process_forms_tab_01()
+   - Localização: Linha ~938 (após st.divider())
+
+================================================================================
+ALTERAÇÕES NO main.py
+================================================================================
+
+1. ADICIONAR CALLBACK NO MENU PRINCIPAL
+   - Criar função callback on_main_menu_change() antes do st.radio
+   - Adicionar parâmetro on_change=on_main_menu_change no st.radio
+
+2. VERIFICAR target_section_01 ANTES DE CRIAR O WIDGET
+   - Verificar se há target_section_01 no session_state
+   - Se houver, atualizar o session_state do menu principal ANTES de criar o widget
+   - Limpar a variável auxiliar após usar
+
+3. PROCESSAR SEÇÃO CORRETA
+   - Prioridade 1: Se há target_section_01, processar ela
+   - Prioridade 2: Se não há target_section_01, processar a selecionada pelo menu principal
+
+CÓDIGO A ADICIONAR/ALTERAR:
+
+# Função callback para quando o menu principal mudar
+def on_main_menu_change():
+    """Callback chamado quando o menu principal muda"""
+    selected = st.session_state["disc10_section_selector"]
+    if selected:
+        # Sincroniza com o menu do final da página
+        st.session_state["disc10_section_selector_bottom"] = selected
+        # Limpa a variável auxiliar do menu do final para evitar conflito
+        if "target_section_XX" in st.session_state:  # XX = número do assessment
+            del st.session_state["target_section_XX"]
+
+# Verifica se há uma seção alvo definida pelo menu do final da página
+target_section = st.session_state.get("target_section_XX", None)  # XX = número do assessment
+section_to_process = None
+
+if target_section:
+    section_to_process = target_section
+    # Encontra a opção correspondente à seção alvo
+    target_option = None
+    for option, value in section_options.items():
+        if value == target_section:
+            target_option = option
+            break
+    
+    # Se encontrou, atualiza o session_state do menu principal ANTES de criar o widget
+    if target_option:
+        st.session_state["discXX_section_selector"] = target_option  # XX = número do assessment
+        # Limpa a variável auxiliar
+        del st.session_state["target_section_XX"]
+
+# Adicionar on_change no st.radio do menu principal
+selected_section = st.radio(
+    "IMPORTANTE: precisa responder tanto a Parte 1 quanto a Parte 2",
+    options=list(section_options.keys()),
+    key="discXX_section_selector",  # XX = número do assessment
+    horizontal=True,
+    on_change=on_main_menu_change  # ADICIONAR ESTE PARÂMETRO
+)
+
+# Executar a seção selecionada
+if not section_to_process and selected_section:
+    section_to_process = section_options[selected_section]
+
+if section_to_process:
+    process_forms_tab(section_to_process)
+
+================================================================================
+ALTERAÇÕES NO paginas/form_model_XX.py
+================================================================================
+
+1. ADICIONAR MENU NO FINAL DA PÁGINA
+   - Após st.divider() (final da função process_forms_tab_XX)
+   - Verificar se estamos no assessment correto
+   - Criar os mesmos radio buttons do menu principal
+
+2. CRIAR CALLBACK PARA O MENU DO FINAL
+   - Função on_bottom_menu_change() que atualiza target_section_XX
+   - Adicionar on_change no st.radio do menu do final
+
+3. SINCRONIZAÇÃO COM MENU PRINCIPAL
+   - Usar session_state para sincronizar valores
+   - Key diferente para evitar conflito (ex: discXX_section_selector_bottom)
+
+CÓDIGO A ADICIONAR (após st.divider()):
+
+# Separador
+st.divider()
+
+# Adiciona os mesmos botões do menu no final da página para todas as seções
+# Verifica se estamos no assessment correto
+assessment_id = st.session_state.get("selected_assessment_id", "")
+if assessment_id == "XX":  # XX = número do assessment (ex: "01", "02", "03")
+    st.markdown("#### 📋 Selecione a Parte que deseja")
+    
+    # Usar os mesmos radio buttons do menu (key diferente para evitar conflito)
+    section_options = {
+        "🎯 Parte 1": "perfil",  # Ajustar conforme o assessment
+        "📊 Parte 2": "comportamento",  # Ajustar conforme o assessment
+        "📈 Resultados": "resultado"  # Ajustar conforme o assessment
+    }
+    
+    # Sincroniza com o valor do menu principal usando session_state
+    main_menu_value = st.session_state.get("discXX_section_selector", None)  # XX = número do assessment
+    bottom_menu_value = st.session_state.get("discXX_section_selector_bottom", None)
+    
+    # Determina o índice inicial baseado no valor do menu principal ou na seção atual
+    current_option = None
+    if main_menu_value:
+        current_option = main_menu_value
+    elif bottom_menu_value:
+        current_option = bottom_menu_value
+    else:
+        for option, value in section_options.items():
+            if value == section:
+                current_option = option
+                break
+    
+    # Se não encontrou, usa a primeira opção
+    options_list = list(section_options.keys())
+    initial_index = options_list.index(current_option) if current_option in options_list else 0
+    
+    # Função callback para quando o menu do final da página mudar
+    def on_bottom_menu_change():
+        """Callback chamado quando o menu do final da página muda"""
+        selected = st.session_state["discXX_section_selector_bottom"]  # XX = número do assessment
+        if selected:
+            section_value = section_options[selected]
+            # Atualiza a variável auxiliar que será lida pelo main.py
+            st.session_state["target_section_XX"] = section_value  # XX = número do assessment
+            # Força rerun para que o main.py processe a mudança
+            st.rerun()
+    
+    selected_section = st.radio(
+        "IMPORTANTE: precisa responder tanto a Parte 1 quanto a Parte 2",
+        options=options_list,
+        key="discXX_section_selector_bottom",  # Key diferente para evitar conflito
+        horizontal=True,
+        index=initial_index,
+        on_change=on_bottom_menu_change  # Callback quando mudar
+    )
+
+================================================================================
+PONTOS IMPORTANTES PARA ADAPTAR NOS OUTROS ASSESSMENTS
+================================================================================
+
+1. SUBSTITUIR "XX" PELO NÚMERO DO ASSESSMENT:
+   - "01" = DISC Essencial
+   - "02" = DISC 20
+   - "03" = Âncoras de Carreira
+   - "04" = Armadilhas do Empresário
+   - "05" = Anamnese Completa
+
+2. AJUSTAR section_options CONFORME O ASSESSMENT:
+   - Verificar no main.py quais são as opções e valores corretos
+   - Exemplo para assessment "03":
+     section_options = {
+         "🎯 Parte 1": "ancoras_p1",
+         "📊 Parte 2": "ancoras_p2", 
+         "📈 Resultados": "resultado"
+     }
+
+3. AJUSTAR KEYS DO session_state:
+   - discXX_section_selector (menu principal)
+   - discXX_section_selector_bottom (menu do final)
+   - target_section_XX (variável auxiliar)
+
+4. VERIFICAR O assessment_id NO main.py:
+   - Cada assessment tem seu próprio bloco if/elif
+   - Adicionar o código no bloco correto
+
+================================================================================
+EXEMPLO DE ADAPTAÇÃO PARA ASSESSMENT "02" (DISC 20)
+================================================================================
+
+main.py (dentro do bloco elif assessment_id == "02"):
+
+# Função callback para quando o menu principal mudar
+def on_main_menu_change():
+    """Callback chamado quando o menu principal muda"""
+    selected = st.session_state["disc20_section_selector"]
+    if selected:
+        st.session_state["disc20_section_selector_bottom"] = selected
+        if "target_section_02" in st.session_state:
+            del st.session_state["target_section_02"]
+
+target_section = st.session_state.get("target_section_02", None)
+section_to_process = None
+
+if target_section:
+    section_to_process = target_section
+    target_option = None
+    for option, value in section_options.items():
+        if value == target_section:
+            target_option = option
+            break
+    if target_option:
+        st.session_state["disc20_section_selector"] = target_option
+        del st.session_state["target_section_02"]
+
+selected_section = st.radio(
+    "Escolha a seção:",
+    options=list(section_options.keys()),
+    key="disc20_section_selector",
+    horizontal=True,
+    on_change=on_main_menu_change  # ADICIONAR
+)
+
+paginas/form_model_02.py (após st.divider()):
+
+assessment_id = st.session_state.get("selected_assessment_id", "")
+if assessment_id == "02":
+    st.markdown("#### 📋 Selecione a seção que deseja responder")
+    
+    section_options = {
+        "🎯 Parte 1": "perfil",
+        "📊 Parte 2": "comportamento", 
+        "📈 Resultados": "resultado"
+    }
+    
+    main_menu_value = st.session_state.get("disc20_section_selector", None)
+    bottom_menu_value = st.session_state.get("disc20_section_selector_bottom", None)
+    
+    current_option = None
+    if main_menu_value:
+        current_option = main_menu_value
+    elif bottom_menu_value:
+        current_option = bottom_menu_value
+    else:
+        for option, value in section_options.items():
+            if value == section:
+                current_option = option
+                break
+    
+    options_list = list(section_options.keys())
+    initial_index = options_list.index(current_option) if current_option in options_list else 0
+    
+    def on_bottom_menu_change():
+        selected = st.session_state["disc20_section_selector_bottom"]
+        if selected:
+            section_value = section_options[selected]
+            st.session_state["target_section_02"] = section_value
+            st.rerun()
+    
+    selected_section = st.radio(
+        "Escolha a seção:",
+        options=options_list,
+        key="disc20_section_selector_bottom",
+        horizontal=True,
+        index=initial_index,
+        on_change=on_bottom_menu_change
+    )
+
+================================================================================
+TESTES REALIZADOS
+================================================================================
+
+✅ Menu do final da página aparece em todas as seções (Parte 1, Parte 2, Resultados)
+✅ Botões do menu principal funcionam corretamente
+✅ Botões do menu do final funcionam corretamente
+✅ Sincronização bidirecional entre os menus funciona
+✅ Não há conflito de keys entre os menus
+✅ Callbacks funcionam corretamente
+
+================================================================================
+OBSERVAÇÕES IMPORTANTES
+================================================================================
+
+1. A key do menu do final DEVE ser diferente da key do menu principal
+   - Menu principal: "discXX_section_selector"
+   - Menu do final: "discXX_section_selector_bottom"
+
+2. A variável auxiliar target_section_XX é limpa após uso para evitar conflitos
+
+3. Os callbacks são executados ANTES do rerun, garantindo sincronização
+
+4. O menu do final aparece em TODAS as seções, não apenas nas Partes 1 e 2
+
+5. O índice inicial do menu do final é calculado baseado na seção atual ou 
+   no valor do menu principal para manter sincronização
+
+================================================================================
+FIM DA DOCUMENTAÇÃO
+================================================================================
+

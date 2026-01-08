@@ -38,12 +38,20 @@ from config import DB_PATH  # Adicione esta importação
 
 # Dicionário de títulos para cada tabela
 TITULOS_TABELAS = {
-    "forms_resultados": "Análise: Âncoras de Carreira"
+    "forms_resultados_01": "Análise: DISC 10 Perguntas",
+    "forms_resultados_02": "Análise: DISC 20 Perguntas", 
+    "forms_resultados_03": "Análise: Âncoras de Carreira",
+    "forms_resultados_04": "Análise: Armadilhas do Empresário",
+    "forms_resultados_05": "Análise: Anamnese Completa"
 }
 
 # Dicionário de subtítulos para cada tabela
 SUBTITULOS_TABELAS = {
-    "forms_resultados": "Avaliação de Âncoras de Carreira"
+    "forms_resultados_01": "Avaliação DISC 10 Perguntas",
+    "forms_resultados_02": "Avaliação DISC 20 Perguntas",
+    "forms_resultados_03": "Avaliação de Âncoras de Carreira",
+    "forms_resultados_04": "Avaliação de Armadilhas do Empresário", 
+    "forms_resultados_05": "Avaliação de Anamnese Completa"
 }
 
 def format_br_number(value):
@@ -219,9 +227,11 @@ def call_dados(cursor, element, tabela_destino: str):
         
         if type_elem == 'call_dados':
             # Busca o valor com CAST para garantir precisão decimal
-            cursor.execute("""
+            # Usar a tabela de origem baseada na tabela de destino
+            tabela_origem = tabela_destino.replace("forms_resultados", "forms_tab")
+            cursor.execute(f"""
                 SELECT CAST(value_element AS DECIMAL(20, 8))
-                FROM forms_tab 
+                FROM {tabela_origem} 
                 WHERE name_element = ? 
                 AND user_id = ?
                 ORDER BY ID_element DESC
@@ -243,7 +253,7 @@ def call_dados(cursor, element, tabela_destino: str):
                 
                 cursor.connection.commit()
             else:
-                st.warning(f"Valor não encontrado na tabela forms_tab para {str_value} (user_id: {user_id})")
+                st.warning(f"Valor não encontrado na tabela {tabela_origem} para {str_value} (user_id: {user_id})")
                 
     except Exception as e:
         st.error(f"Erro ao processar call_dados: {str(e)}")
@@ -394,9 +404,9 @@ def grafico_barra(cursor, element):
     except Exception as e:
         st.error(f"Erro ao criar gráfico: {str(e)}")
 
-def tabela_dados(cursor, element):
+def tabela_dados(cursor, element, tabela_escolhida):
     """
-    Cria uma tabela estilizada com dados da tabela forms_resultados.
+    Cria uma tabela estilizada com dados da tabela especificada.
     Tabela transposta (vertical) com valores em vez de nomes.
     
     Args:
@@ -447,9 +457,9 @@ def tabela_dados(cursor, element):
         
         # Busca os valores para cada type_name
         for type_name in type_names:
-            cursor.execute("""
+            cursor.execute(f"""
                 SELECT value_element 
-                FROM forms_resultados 
+                FROM {tabela_escolhida} 
                 WHERE name_element = ? 
                 AND user_id = ?
                 ORDER BY ID_element DESC
@@ -922,9 +932,9 @@ def generate_pdf_content(cursor, user_id: int, tabela_escolhida: str):
             ranking_ancoras_pdf = []
             for codigo in mapeamento_ancoras_pdf.keys():
                 # Usar mesma lógica da função da tela que funciona
-                pdf_cursor.execute("""
+                pdf_cursor.execute(f"""
                     SELECT value_element 
-                    FROM forms_resultados 
+                    FROM {tabela_escolhida} 
                     WHERE name_element = ? 
                     AND user_id = ?
                     ORDER BY ID_element DESC
@@ -1616,13 +1626,13 @@ def parse_br_number(value_str):
 
 # Sistema refatorado - agora exclusivo para Âncoras de Carreira
 
-def buscar_valor_ancora(cursor, user_id, name_element):
+def buscar_valor_ancora(cursor, user_id, name_element, tabela_escolhida):
     """
-    Busca valor específico de uma âncora na tabela forms_resultados
+    Busca valor específico de uma âncora na tabela especificada
     """
     try:
-        cursor.execute("""
-            SELECT value_element FROM forms_resultados
+        cursor.execute(f"""
+            SELECT value_element FROM {tabela_escolhida}
             WHERE user_id = ? AND name_element = ?
             LIMIT 1
         """, (user_id, name_element))
@@ -1705,17 +1715,17 @@ def analisar_ancoras_carreira_streamlit(cursor, user_id):
         }
         
         # 3. Buscar valores das âncoras para criar ranking
-        # USAR TABELA ESPECÍFICA: forms_resultados
-        tabela = 'forms_resultados'
+        # USAR TABELA ESPECÍFICA: tabela_escolhida
+        tabela = tabela_escolhida
         
         codigos_ancoras = list(mapeamento_ancoras.keys())
         ranking_ancoras = []
         
         for codigo in codigos_ancoras:
             # Usar a mesma lógica da função tabela_dados que funciona
-            cursor.execute("""
+            cursor.execute(f"""
                 SELECT value_element 
-                FROM forms_resultados 
+                FROM {tabela_escolhida} 
                 WHERE name_element = ? 
                 AND user_id = ?
                 ORDER BY ID_element DESC

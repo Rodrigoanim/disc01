@@ -1,5 +1,5 @@
 # Arquivo: monitor.py
-# Data: 20/02/2025 15:25
+# Data: 08/12/2025 
 # Dashboard de monitoramento de uso
 # type: ignore
 # pylance: disable=reportMissingModuleSource
@@ -69,6 +69,7 @@ def carregar_dados_acessos():
     # Query para acessos por usuário - ajustada para incluir empresa e hora
     query_usuarios = f"""
     SELECT 
+        u.user_id,
         u.nome, 
         u.empresa, 
         COUNT(*) as quantidade_acessos,
@@ -78,7 +79,7 @@ def carregar_dados_acessos():
     WHERE date(la.data_acesso, {timezone_adjust}) >= date('now', '-30 days')
     GROUP BY u.user_id, u.nome, u.empresa
     ORDER BY quantidade_acessos DESC
-    LIMIT 10
+    LIMIT 20
     """
     
     # Query para frequência de acessos diários - ajustada
@@ -185,7 +186,7 @@ def main():
             st.markdown("<br><br><br>", unsafe_allow_html=True)
             
             # Gráfico de acessos por usuário
-            st.subheader("Top 10 Usuários por Quantidade de Acessos")
+            st.subheader("Top 20 Usuários por Quantidade de Acessos")
             fig_usuarios = px.bar(df_usuarios, 
                                 x='nome', 
                                 y='quantidade_acessos',
@@ -199,6 +200,7 @@ def main():
             # Tabela de usuários logo abaixo do seu gráfico
             st.dataframe(
                 df_usuarios.rename(columns={
+                    'user_id': 'ID Usuário',
                     'ultimo_acesso': 'Último Acesso',
                     'nome': 'Nome',
                     'empresa': 'Empresa',

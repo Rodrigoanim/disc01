@@ -35,16 +35,6 @@ def show_resultados_adm():
         </p>
     """, unsafe_allow_html=True)
     
-    # Informações da sessão admin
-    st.markdown(f"""
-        <div style='background-color:#e8f4f8;padding:15px;border-radius:5px;margin-bottom:20px;'>
-            <p style='font-size:14px;color:#333;'>
-                <strong>👤 Administrador:</strong> {st.session_state.get('user_name')}<br>
-                <strong>🔑 Perfil:</strong> {st.session_state.get('user_profile')}<br>
-                <strong>📋 Função:</strong> Visualizar análises de usuários cadastrados
-            </p>
-        </div>
-    """, unsafe_allow_html=True)
     
     # Verificar se o banco existe
     if not DB_PATH.exists():
@@ -72,51 +62,19 @@ def show_resultados_adm():
         # Criar DataFrame para melhor manipulação
         df_usuarios = pd.DataFrame(usuarios, columns=['User ID', 'Nome', 'Email', 'Perfil', 'Empresa'])
         
-        # Exibir estatísticas
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Total de Usuários", len(usuarios))
-        with col2:
-            empresas_unicas = len(df_usuarios['Empresa'].dropna().unique())
-            st.metric("Empresas Cadastradas", empresas_unicas)
-        with col3:
-            # Verificar quantos usuários têm análises
-            cursor.execute("""
-                SELECT COUNT(DISTINCT user_id) 
-                FROM forms_resultados 
-                WHERE user_id IN (SELECT user_id FROM usuarios WHERE perfil = 'usuario')
-            """)
-            usuarios_com_analises = cursor.fetchone()[0]
-            st.metric("Usuários com Análises", usuarios_com_analises)
         
-        st.markdown("---")
+        # Interface de seleção de usuário (sem pesquisa)
+        st.markdown("### 👥 Selecionar Usuário para Análise")
         
-        # Interface de pesquisa e seleção
-        st.markdown("### 🔍 Pesquisar e Selecionar Usuário")
-        
-        # Campo de pesquisa
-        pesquisa = st.text_input(
-            "Digite nome ou email para pesquisar:",
-            placeholder="Ex: João Silva ou joao@empresa.com",
-            key="pesquisa_usuario"
-        )
-        
-        # Filtrar usuários baseado na pesquisa
-        if pesquisa:
-            mascara = (
-                df_usuarios['Nome'].str.contains(pesquisa, case=False, na=False) |
-                df_usuarios['Email'].str.contains(pesquisa, case=False, na=False)
-            )
-            df_filtrado = df_usuarios[mascara]
-        else:
-            df_filtrado = df_usuarios
+        # Usar todos os usuários (sem filtro de pesquisa)
+        df_filtrado = df_usuarios
         
         if len(df_filtrado) == 0:
-            st.warning("🔍 **Nenhum usuário encontrado** com os critérios de pesquisa.")
+            st.warning("⚠️ **Nenhum usuário encontrado** na base de dados.")
             return
         
-        # Exibir tabela de usuários filtrados
-        st.markdown(f"**Usuários encontrados:** {len(df_filtrado)}")
+        # Exibir total de usuários
+        st.markdown(f"**Usuários disponíveis:** {len(df_filtrado)}")
         
         # Criar lista para seleção
         opcoes_usuarios = []
@@ -148,13 +106,25 @@ def show_resultados_adm():
                     
                     st.success(f"✅ **Usuário selecionado:** {usuario_info['Nome']}")
                     
-                    # Verificar se o usuário tem análises
-                    cursor.execute("""
-                        SELECT COUNT(*) 
-                        FROM forms_resultados 
-                        WHERE user_id = ?
-                    """, (user_id_selecionado,))
-                    tem_analises = cursor.fetchone()[0] > 0
+                    # Verificar quais assessments o usuário tem dados
+                    assessments_disponiveis = []
+                    
+                    for assessment_id in ["01", "02", "03", "04", "05"]:
+                        cursor.execute(f"""
+                            SELECT COUNT(*) FROM forms_resultados_{assessment_id} 
+                            WHERE user_id = ?
+                        """, (user_id_selecionado,))
+                        
+                        if cursor.fetchone()[0] > 0:
+                            # Buscar nome do assessment
+                            cursor.execute("""
+                                SELECT assessment_name FROM assessments 
+                                WHERE assessment_id = ? LIMIT 1
+                            """, (assessment_id,))
+                            result = cursor.fetchone()
+                            assessment_name = result[0] if result else f"Assessment {assessment_id}"
+                            
+                            assessments_disponiveis.append((assessment_id, assessment_name))
                     
                     col1, col2 = st.columns([1, 1])
                     
@@ -168,28 +138,33 @@ def show_resultados_adm():
                         """)
                     
                     with col2:
-                        if tem_analises:
-                            st.success("✅ **Status:** Usuário possui análises DISC")
+                        if assessments_disponiveis:
+                            st.success(f"✅ **Status:** Usuário possui {len(assessments_disponiveis)} análise(s) disponível(is)")
                             
-                            # Botão para visualizar análises
-                            if st.button("🔍 **Visualizar Análises DISC**", use_container_width=True, type="primary"):
-                                # Registrar acesso à análise
-                                registrar_acesso(
-                                    user_id=st.session_state.get("user_id"),
-                                    programa="resultados_adm.py",
-                                    acao=f"visualizar_analise_usuario_{user_id_selecionado}"
-                                )
-                                
-                                # Armazenar dados para redirecionamento
-                                st.session_state["admin_view_user_id"] = user_id_selecionado
-                                st.session_state["admin_view_user_name"] = usuario_info['Nome']
-                                st.session_state["redirect_to_analysis"] = True
-                                
-                                # Redirecionar para a página de análises
-                                st.rerun()
+                            st.markdown("### 🎯 Análises Disponíveis")
+                            st.info("💡 **Clique no botão do assessment que deseja visualizar:**")
+                            
+                            # Criar botões para cada assessment disponível
+                            for assessment_id, assessment_name in assessments_disponiveis:
+                                if st.button(f"📊 **{assessment_name}**", use_container_width=True, key=f"btn_assessment_{assessment_id}"):
+                                    # Registrar acesso à análise
+                                    registrar_acesso(
+                                        user_id=st.session_state.get("user_id"),
+                                        programa="resultados_adm.py",
+                                        acao=f"visualizar_analise_usuario_{user_id_selecionado}_{assessment_id}"
+                                    )
+                                    
+                                    # Armazenar dados para redirecionamento
+                                    st.session_state["admin_view_user_id"] = user_id_selecionado
+                                    st.session_state["admin_view_user_name"] = usuario_info['Nome']
+                                    st.session_state["admin_selected_assessment"] = assessment_id
+                                    st.session_state["redirect_to_analysis"] = True
+                                    
+                                    # Redirecionar para a página de análises
+                                    st.rerun()
                         else:
-                            st.warning("⚠️ **Status:** Usuário ainda não realizou análises DISC")
-                            st.info("💡 **Orientação:** Este usuário precisa completar as avaliações de Âncoras P1 e P2 primeiro.")
+                            st.warning("⚠️ **Status:** Usuário ainda não possui análises disponíveis")
+                            st.info("💡 **Orientação:** Este usuário precisa completar pelo menos um assessment primeiro.")
         
         # Tabela resumo (opcional, pode ser colocada em um expander)
         with st.expander("📋 **Ver todos os usuários cadastrados**", expanded=False):

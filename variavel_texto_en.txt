@@ -1,20 +1,20 @@
 # FILE: variavel_texto_en.txt
-# Career Anchor System - External Texts
-# Date: 03/08/2025 - Transition from DISC project to Career Anchor
+# Platform: C.H.A.V.E. Behavioral - English Texts
+# Date: 05/01/2026
 # 
 # CONVENTION: [file_name]_[sequential_3_digits]
 #
 # ================================================================
 
 # === GENERAL CONFIGURATION ===
-app_title=Career Anchor Platform - v1.0a
-app_about=Career Anchor Assessment System - Version 1.0a - 03/08/2025
+app_title=C.H.A.V.E. Behavioral Platform - v2.2e
+app_about=Assessment System - 05/01/2026
 
 # === MAIN.PY - LOGIN SCREEN ===
-main_001=Behavioral Platform
+main_001=C.H.A.V.E. Behavioral Platform v2.2e
 main_002=E-mail
 main_003=Password
-main_004=I declare that I have read and accept the [terms of use of the tool](https://ag93eventos.com.br/ear/Termos_Uso_DISC.pdf)
+main_004=I declare that I have read and accept the [terms of use of the tool](https://ag93eventos.com.br/ear/Termo_de_Uso - Multi-Assessments.pdf)
 main_005=Enter
 main_006=You must accept the terms of use to continue.
 main_007=Invalid email or password. Please check your data and try again.
@@ -22,12 +22,15 @@ main_007=Invalid email or password. Please check your data and try again.
 # === MAIN.PY - WELCOME SCREEN ===
 main_008=Research Based on Career Anchor Methodology
 main_009=Purpose
+main_009b=How we do it
+main_009c=What we do
 main_010=This Web App aims to identify your predominant career anchors, revealing your fundamental professional values, motivations and aspirations.
 main_011=By identifying your anchors, you activate a journey of applied professional self-knowledge that expands your awareness of your motivations, strengthens your career choices and enhances your decisions with more clarity, purpose and alignment.
 main_012=More than a diagnosis, it is a starting point to evolve with purpose, make conscious professional choices and build a career with authenticity and satisfaction.
 
 # === MAIN.PY - APPLICATION HEADER ===
 main_013=CHAVE Platform - Human Development, AI Automations
+main_013a=Subtitle
 main_014=User Information / Logout
 main_015=**User:**
 main_016=**ID:**
@@ -96,4 +99,12 @@ main_061=Assessment Analysis
 # === FORM_MODEL.PY - SECTION TITLES ===
 form_model_001=Career Anchor Assessment - Part 1
 form_model_002=Career Anchor Assessment - Part 2
-form_model_003=Assessment Results 
+form_model_003=Assessment Results
+
+# === FORM_MODEL_06.PY - SECTION TITLES ===
+form_model_06_001=Part 1 - Vocational and Professional Inventory
+form_model_06_002=Part 2 - Vocational and Professional Inventory
+form_model_06_003=Results - Vocational and Professional Inventory
+
+# === RESULTADOS_06.PY - MESSAGES ===
+resultados_06_001=Take the next step in human and professional development. <br>Talk to Erika Rossi – (11) 99506-6778.

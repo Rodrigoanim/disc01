@@ -1,0 +1,233 @@
+================================================================================
+ANÁLISE DAS REGRAS DE DEFINIÇÃO DOS PERFIS DISC
+================================================================================
+Data: 2025-01-27
+Arquivo analisado: paginas/resultados_01.py
+
+================================================================================
+1. ESTRUTURA DE DADOS DISC
+================================================================================
+
+O sistema utiliza 8 elementos base para calcular os perfis DISC:
+
+ELEMENTOS DE PERFIL (C):
+- C31: Dominância (Perfil)
+- C32: Influência (Perfil)
+- C33: Estabilidade (Perfil)
+- C34: Conformidade (Perfil)
+
+ELEMENTOS DE COMPORTAMENTO (D):
+- D31: Dominância (Comportamento)
+- D32: Influência (Comportamento)
+- D33: Estabilidade (Comportamento)
+- D34: Conformidade (Comportamento)
+
+Localização no código:
+- Linha 1289: elementos_busca = ['C31', 'D31', 'C32', 'D32', 'C33', 'D33', 'C34', 'D34']
+
+================================================================================
+2. CÁLCULO DAS VARIÁVEIS HÍBRIDAS
+================================================================================
+
+As variáveis híbridas são calculadas como a MÉDIA ARITMÉTICA (50% cada) entre
+os valores de Perfil e Comportamento para cada dimensão DISC.
+
+FÓRMULAS DE CÁLCULO:
+
+1. Dominância Híbrida (D):
+   Valor Híbrido = (C31 + D31) / 2
+   - C31 = Valor do Perfil de Dominância
+   - D31 = Valor do Comportamento de Dominância
+   - Peso: 50% Perfil + 50% Comportamento
+
+2. Influência Híbrida (I):
+   Valor Híbrido = (C32 + D32) / 2
+   - C32 = Valor do Perfil de Influência
+   - D32 = Valor do Comportamento de Influência
+   - Peso: 50% Perfil + 50% Comportamento
+
+3. Estabilidade Híbrida (S):
+   Valor Híbrido = (C33 + D33) / 2
+   - C33 = Valor do Perfil de Estabilidade
+   - D33 = Valor do Comportamento de Estabilidade
+   - Peso: 50% Perfil + 50% Comportamento
+
+4. Conformidade Híbrida (C):
+   Valor Híbrido = (C34 + D34) / 2
+   - C34 = Valor do Perfil de Conformidade
+   - D34 = Valor do Comportamento de Conformidade
+   - Peso: 50% Perfil + 50% Comportamento
+
+Localização no código:
+- Linhas 1315-1354: Cálculo das variáveis híbridas
+
+================================================================================
+3. CORREÇÃO DE VALORES
+================================================================================
+
+O sistema aplica uma correção automática para valores que possam estar 
+multiplicados por 1000:
+
+REGRAS DE CORREÇÃO:
+- Se valor >= 1000: Divide por 1000
+- Se valor < 1000: Mantém o valor original
+
+Localização no código:
+- Linhas 1304-1308: Aplicação da correção de valores
+
+Exemplo:
+- Se C31 = 5000 → Corrigido para 5.0
+- Se C31 = 50 → Mantém 50.0
+
+================================================================================
+4. DEFINIÇÃO DE PERFIL ÚNICO vs PERFIL COMBINADO
+================================================================================
+
+Após calcular as variáveis híbridas, o sistema ordena os valores do maior para
+o menor e calcula a diferença entre o perfil primário (1º lugar) e o secundário
+(2º lugar).
+
+CRITÉRIO DE CLASSIFICAÇÃO:
+
+PERFIL ÚNICO:
+- Condição: Diferença > 10 pontos
+- Fórmula: (Valor Híbrido Primário - Valor Híbrido Secundário) > 10
+- Resultado: Perfil dominante único (D, I, S ou C)
+- Arquivos de análise: Conteudo/01/1_D_Dominancia.md, 1_I_Influencia.md, etc.
+
+PERFIL COMBINADO:
+- Condição: Diferença ≤ 10 pontos
+- Fórmula: (Valor Híbrido Primário - Valor Híbrido Secundário) ≤ 10
+- Resultado: Combinação de dois perfis (ex: DI, IS, SC, etc.)
+- Arquivos de análise: Conteudo/01/21_DC_DOMINANCIA_CONFORMIDADE.md, etc.
+
+PERCENTUAL CRÍTICO: 10 PONTOS
+Este é o percentual/limite que determina se o perfil é único ou combinado.
+
+Localização no código:
+- Linha 1435: if diferenca > 10: (Perfil Único)
+- Linha 1451: else: (Perfil Combinado)
+- Linha 1486: Exibição do critério na interface
+- Linha 1734: if diferenca > 10: (Perfil Único - função analisar_perfil_disc)
+
+================================================================================
+5. COMBINAÇÕES DE PERFIS COMBINADOS MAPEADAS
+================================================================================
+
+O sistema mapeia 8 combinações possíveis de perfis combinados:
+
+1. DC: Dominância + Conformidade
+2. DI: Dominância + Influência
+3. ID: Influência + Dominância
+4. IS: Influência + Estabilidade
+5. SI: Estabilidade + Influência
+6. SC: Estabilidade + Conformidade
+7. CD: Conformidade + Dominância
+8. CS: Conformidade + Estabilidade
+
+Localização no código:
+- Linhas 1458-1467: Mapeamento das combinações
+
+================================================================================
+6. ORDENAÇÃO E SELEÇÃO DOS PERFIS
+================================================================================
+
+PROCESSO DE ORDENAÇÃO:
+1. Calcula as 4 variáveis híbridas (D, I, S, C)
+2. Ordena do maior para o menor valor híbrido
+3. Seleciona o 1º lugar como Perfil Primário
+4. Seleciona o 2º lugar como Perfil Secundário
+5. Calcula a diferença: Primário - Secundário
+6. Aplica o critério de 5 pontos para classificar
+
+Localização no código:
+- Linha 1357: Ordenação das variáveis híbridas
+- Linhas 1429-1431: Seleção do primário e secundário e cálculo da diferença
+
+================================================================================
+7. VALIDAÇÕES E TRATAMENTO DE ERROS
+================================================================================
+
+VALIDAÇÕES IMPLEMENTADAS:
+
+1. Mínimo de 2 perfis necessários:
+   - Se len(perfil) < 2: Retorna erro "Dados DISC insuficientes"
+   - Localização: Linha 1260
+
+2. Valores não encontrados:
+   - Se valores_elementos[elemento] não encontrado: Define como 0.0
+   - Localização: Linha 1310
+
+3. Combinação não mapeada:
+   - Se combinação não existe no dicionário: Retorna erro
+   - Localização: Linha 1511
+
+================================================================================
+8. RESUMO DOS PERCENTUAIS E LIMITES CRÍTICOS
+================================================================================
+
+PERCENTUAIS QUE REGEM A DEFINIÇÃO DOS RESULTADOS DISC:
+
+1. PESO NA VARIÁVEL HÍBRIDA:
+   - Perfil: 50% (0.5)
+   - Comportamento: 50% (0.5)
+   - Fórmula: (Perfil + Comportamento) / 2
+
+2. LIMITE PARA PERFIL ÚNICO:
+   - Diferença > 10 pontos → Perfil ÚNICO
+   - Este é o percentual crítico que determina a classificação
+
+3. LIMITE PARA PERFIL COMBINADO:
+   - Diferença ≤ 10 pontos → Perfil COMBINADO
+   - Inclui o caso de diferença exatamente igual a 10 pontos
+
+4. CORREÇÃO DE ESCALA:
+   - Se valor >= 1000: Divide por 1000 (correção de escala)
+   - Se valor < 1000: Mantém valor original
+
+================================================================================
+9. EXEMPLO PRÁTICO DE CÁLCULO
+================================================================================
+
+CENÁRIO EXEMPLO:
+
+Valores de entrada:
+- C31 (Perfil Dominância) = 80
+- D31 (Comportamento Dominância) = 70
+- C32 (Perfil Influência) = 60
+- D32 (Comportamento Influência) = 65
+
+Cálculo das Variáveis Híbridas:
+1. Dominância Híbrida = (80 + 70) / 2 = 75.0
+2. Influência Híbrida = (60 + 65) / 2 = 62.5
+
+Ordenação:
+1º lugar: Dominância (75.0)
+2º lugar: Influência (62.5)
+
+Diferença:
+75.0 - 62.5 = 12.5 pontos
+
+Classificação:
+12.5 > 10 → PERFIL ÚNICO (Dominância)
+
+================================================================================
+10. REFERÊNCIAS NO CÓDIGO
+================================================================================
+
+Arquivo: paginas/resultados_01.py
+
+Funções principais:
+- analisar_perfil_disc_streamlit() - Linha 1159
+- analisar_perfil_disc() - Linha 1519
+
+Seções críticas:
+- Cálculo variáveis híbridas: Linhas 1312-1354
+- Definição perfil único/combinado: Linhas 1427-1470
+- Exibição do critério: Linha 1486
+- Definição perfil único/combinado (PDF): Linha 1734
+
+================================================================================
+FIM DO DOCUMENTO
+================================================================================
+

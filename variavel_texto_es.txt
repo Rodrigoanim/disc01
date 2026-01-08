@@ -1,20 +1,20 @@
 # ARCHIVO: variavel_texto_es.txt
-# Sistema de Anclas de Carrera - Textos Externos
-# Fecha: 03/08/2025 - Transición del proyecto DISC a Anclas de Carrera
+# Plataforma: C.H.A.V.E. Comportamental - Textos Español
+# Fecha: 05/01/2026
 # 
 # CONVENCIÓN: [nombre_archivo]_[secuencial_3_dígitos]
 #
 # ================================================================
 
 # === CONFIGURACIÓN GENERAL ===
-app_title=Plataforma de Anclas de Carrera - v1.0a
-app_about=Sistema de Evaluación de Anclas de Carrera - Versión 1.0a - 03/08/2025
+app_title=Plataforma C.H.A.V.E. Comportamental - v2.2e
+app_about=Sistema de Assessments - 05/01/2026
 
 # === MAIN.PY - PANTALLA DE LOGIN ===
-main_001=Plataforma Comportamental
+main_001=Plataforma C.H.A.V.E. Comportamental v2.2e
 main_002=Correo electrónico
 main_003=Contraseña
-main_004=Declaro que he leído y acepto los [términos de uso de la herramienta](https://ag93eventos.com.br/ear/Termos_Uso_DISC.pdf)
+main_004=Declaro que he leído y acepto los [términos de uso de la herramienta](https://ag93eventos.com.br/ear/Termos_Termo_de_Uso - Multi-Assessments.pdf)
 main_005=Entrar
 main_006=Debe aceptar los términos de uso para continuar.
 main_007=Correo electrónico o contraseña inválidos. Por favor, verifique sus datos e intente nuevamente.
@@ -28,6 +28,7 @@ main_012=Más que un diagnóstico, es un punto de partida para evolucionar con p
 
 # === MAIN.PY - ENCABEZADO DE APLICACIÓN ===
 main_013=Plataforma CHAVE - Desarrollo Humano, Automatizaciones con IA
+main_013a=Subtítulo
 main_014=Información del Usuario / Cerrar Sesión
 main_015=**Usuario:**
 main_016=**ID:**
@@ -96,4 +97,12 @@ main_061=Análisis de Evaluaciones
 # === FORM_MODEL.PY - TÍTULOS DE SECCIONES ===
 form_model_001=Evaluación de Anclas de Carrera - Parte 1
 form_model_002=Evaluación de Anclas de Carrera - Parte 2
-form_model_003=Resultados de Evaluaciones 
+form_model_003=Resultados de Evaluaciones
+
+# === FORM_MODEL_06.PY - TÍTULOS DE SECCIONES ===
+form_model_06_001=Parte 1 - Inventario Vocacional y Profesional
+form_model_06_002=Parte 2 - Inventario Vocacional y Profesional
+form_model_06_003=Resultados - Inventario Vocacional y Profesional
+
+# === RESULTADOS_06.PY - MENSAJES ===
+resultados_06_001=Dé el siguiente paso en el desarrollo humano y profesional. <br>Hable con Erika Rossi – (11) 99506-6778.

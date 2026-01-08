@@ -1,0 +1,8 @@
+00_Abertura.md
+01_Sobrecarga_Solidao.md
+02_Pessoal_Profissional.md
+03_Backup_Sucessao.md
+04_Crescimento_Improviso.md
+05_Dependencia_Dono.md
+06_Dificuldade_parceiros.md
+07_Falta_Tempo.md

@@ -1,0 +1,238 @@
+================================================================================
+DOCUMENTAÇÃO DE ALTERAÇÕES - resultados_04.py
+================================================================================
+Data: 09/12/2025
+Arquivo: paginas/resultados_04.py
+Tabela: forms_resultados_04
+
+================================================================================
+RESUMO DAS ALTERAÇÕES
+================================================================================
+
+Implementação do Ranking das Armadilhas e Relatório Detalhado após o 
+Relatório de Vulnerabilidade no Assessment 04 (Armadilhas do Empresário).
+
+================================================================================
+1. ALTERAÇÕES NA FUNÇÃO exibir_ranking_armadilhas()
+================================================================================
+
+ANTES:
+- Apenas exibia a tabela do ranking
+- Não retornava nenhum valor
+
+DEPOIS:
+- Continua exibindo a tabela do ranking ordenada por valor (decrescente)
+- Agora retorna uma lista com as 3 primeiras armadilhas do ranking
+- Retorna None se não encontrar dados ou houver erro
+
+LOCALIZAÇÃO: Linha ~1144
+
+================================================================================
+2. NOVA FUNÇÃO: mapear_armadilha_para_arquivo()
+================================================================================
+
+DESCRIÇÃO:
+Mapeia o nome do rótulo da armadilha para o arquivo .md correspondente na 
+pasta /Conteudo/04/.
+
+PARÂMETROS:
+- nome_armadilha: Nome do rótulo da armadilha (ex: "Sobrecarga e Solidão")
+
+RETORNO:
+- Nome do arquivo .md correspondente ou None se não encontrar
+
+MAPEAMENTO IMPLEMENTADO:
+- "Sobrecarga" ou "Solidão" → 01_Sobrecarga_Solidao.md
+- "Pessoal" ou "Profissional" → 02_Pessoal_Profissional.md
+- "Backup" ou "Sucessão" → 03_Backup_Sucessao.md
+- "Crescimento" ou "Improviso" → 04_Crescimento_Improviso.md
+- "Dependência" ou "Dono" → 05_Dependencia_Dono.md
+- "Dificuldade" ou "Parceiros" → 06_Dificuldade_parceiros.md
+- "Tempo" ou "Falta" → 07_Falta_Tempo.md
+
+LOCALIZAÇÃO: Linha ~1280
+
+================================================================================
+3. NOVA FUNÇÃO: exibir_relatorio_detalhado_armadilhas()
+================================================================================
+
+DESCRIÇÃO:
+Exibe o relatório detalhado das 3 primeiras armadilhas do ranking na interface
+Streamlit.
+
+FUNCIONALIDADES:
+1. Armazena as 3 primeiras armadilhas nas variáveis:
+   - armadilha01 = 1ª do ranking (maior pontuação)
+   - armadilha02 = 2ª do ranking
+   - armadilha03 = 3ª do ranking
+
+2. Renderiza o arquivo 00_Abertura.md da pasta /Conteudo/04/
+
+3. Para cada uma das 3 armadilhas:
+   - Mapeia o nome para o arquivo .md correspondente
+   - Busca o arquivo na pasta /Conteudo/04/
+   - Renderiza o conteúdo na tela
+
+ORDEM DE EXIBIÇÃO:
+1. Título: "📖 Relatório Detalhado das Armadilhas"
+2. Conteúdo do arquivo 00_Abertura.md
+3. Conteúdo do arquivo da 1ª armadilha
+4. Conteúdo do arquivo da 2ª armadilha
+5. Conteúdo do arquivo da 3ª armadilha
+
+LOCALIZAÇÃO: Linha ~1300
+
+================================================================================
+4. NOVA FUNÇÃO: obter_top_3_armadilhas_pdf()
+================================================================================
+
+DESCRIÇÃO:
+Obtém as 3 primeiras armadilhas do ranking para uso na geração do PDF.
+Similar à função exibir_ranking_armadilhas mas retorna apenas os dados sem
+exibir na tela.
+
+PARÂMETROS:
+- cursor: Cursor do banco de dados
+- user_id: ID do usuário
+- tabela_escolhida: Nome da tabela (forms_resultados_04)
+
+RETORNO:
+- Lista com os nomes das 3 primeiras armadilhas ou None
+
+LOCALIZAÇÃO: Linha ~1245
+
+================================================================================
+5. NOVA FUNÇÃO: processar_markdown_para_pdf()
+================================================================================
+
+DESCRIÇÃO:
+Processa conteúdo markdown e retorna lista de parágrafos formatados para o PDF.
+Remove tags HTML, normaliza quebras de linha, remove emojis, etc.
+
+PARÂMETROS:
+- conteudo_markdown: String com conteúdo markdown
+
+RETORNO:
+- Lista de parágrafos processados
+
+LOCALIZAÇÃO: Linha ~1310
+
+================================================================================
+6. ALTERAÇÕES NA FUNÇÃO analisar_vulnerabilidade_7armadilhas_streamlit()
+================================================================================
+
+ANTES:
+- Exibia apenas o ranking das armadilhas
+
+DEPOIS:
+- Chama exibir_ranking_armadilhas() e recebe as 3 primeiras armadilhas
+- Chama exibir_relatorio_detalhado_armadilhas() com as 3 armadilhas
+
+LOCALIZAÇÃO: Linha ~1366-1369
+
+================================================================================
+7. ALTERAÇÕES NA FUNÇÃO generate_pdf_content()
+================================================================================
+
+ANTES:
+- Gerava PDF com: Tabela Perfil → Gráfico Perfil → Análise Detalhada
+
+DEPOIS:
+- Adiciona seção "Relatório Detalhado das Armadilhas" após a Análise Detalhada
+- Inclui:
+  1. Conteúdo do arquivo 00_Abertura.md
+  2. Conteúdo dos arquivos das 3 primeiras armadilhas do ranking
+
+PROCESSAMENTO:
+- Usa obter_top_3_armadilhas_pdf() para obter as armadilhas
+- Usa mapear_armadilha_para_arquivo() para mapear nomes para arquivos
+- Usa processar_markdown_para_pdf() para converter markdown em parágrafos PDF
+
+LOCALIZAÇÃO: Linha ~905-960
+
+================================================================================
+8. ALTERAÇÃO NO RÓTULO DA COLUNA DAS TABELAS
+================================================================================
+
+ANTES:
+- Primeira coluna: "Indicador"
+
+DEPOIS:
+- Primeira coluna: "Armadilhas"
+
+ARQUIVOS AFETADOS:
+- tabela_dados() - Linha ~481
+- tabela_dados_sem_titulo() - Linha ~1113
+- exibir_ranking_armadilhas() - Linha ~1204
+- gerar_dados_tabela() - Linha ~560 (para PDF)
+
+================================================================================
+ESTRUTURA DE ARQUIVOS ESPERADA
+================================================================================
+
+Pasta: /Conteudo/04/
+
+Arquivos necessários:
+- 00_Abertura.md (arquivo de abertura do relatório)
+- 01_Sobrecarga_Solidao.md
+- 02_Pessoal_Profissional.md
+- 03_Backup_Sucessao.md
+- 04_Crescimento_Improviso.md
+- 05_Dependencia_Dono.md
+- 06_Dificuldade_parceiros.md
+- 07_Falta_Tempo.md
+
+================================================================================
+FLUXO DE EXECUÇÃO
+================================================================================
+
+1. Usuário acessa a página de resultados
+2. Sistema exibe tabela inicial com todas as armadilhas
+3. Sistema exibe gráficos e outras informações
+4. Sistema exibe "Análise Detalhada do Assessment" (expander)
+   - Informações do participante
+   - Pontuação de vulnerabilidade
+   - Classificação de risco
+   - Relatório de vulnerabilidade (arquivo .md baseado na faixa de risco)
+5. Sistema exibe "Ranking das Armadilhas" (tabela ordenada)
+6. Sistema exibe "Relatório Detalhado das Armadilhas"
+   - 00_Abertura.md
+   - Arquivo da 1ª armadilha do ranking
+   - Arquivo da 2ª armadilha do ranking
+   - Arquivo da 3ª armadilha do ranking
+7. Sistema exibe informações sobre o assessment
+
+================================================================================
+OBSERVAÇÕES IMPORTANTES
+================================================================================
+
+1. O mapeamento de nomes para arquivos é feito por palavras-chave, então os
+   rótulos das armadilhas devem conter pelo menos uma das palavras-chave
+   definidas no mapeamento.
+
+2. Se uma armadilha não for mapeada corretamente, será exibido um aviso mas
+   o sistema continuará funcionando.
+
+3. Se um arquivo .md não for encontrado, será exibido um aviso mas o sistema
+   continuará processando os demais arquivos.
+
+4. A ordem das armadilhas no relatório detalhado segue a ordem do ranking
+   (do maior para o menor valor).
+
+5. O relatório detalhado é exibido tanto na interface web quanto no PDF gerado.
+
+================================================================================
+TESTES RECOMENDADOS
+================================================================================
+
+1. Verificar se o ranking está sendo exibido corretamente ordenado
+2. Verificar se as 3 primeiras armadilhas estão sendo identificadas corretamente
+3. Verificar se o mapeamento de nomes para arquivos está funcionando
+4. Verificar se os arquivos .md estão sendo renderizados corretamente na tela
+5. Verificar se o PDF está sendo gerado com o relatório detalhado
+6. Testar com diferentes combinações de armadilhas no top 3
+
+================================================================================
+FIM DA DOCUMENTAÇÃO
+================================================================================
+
